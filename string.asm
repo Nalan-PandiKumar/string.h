@@ -6,7 +6,7 @@
 ;   library's `<string.h>`. The goal of this project 
 ;   is to replicate and understand the functionality 
 ;   of these functions at the lowest level, utilizing 
-;   the x86-64 instruction set.
+;   the x86-32 instruction set.
 ;
 ; FUNCTIONS IMPLEMENTED:
 ;   - strlen: Get the length of a null-terminated string.

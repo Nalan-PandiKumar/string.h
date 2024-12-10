@@ -38,8 +38,8 @@ DECLARED FUNCTIONS:
     22) strxfrm: Transform a string for locale-sensitive comparison.
 
 NOTE:
-    - Functions adhere to the x86-64 System V ABI or
-      Microsoft x64 ABI based on the target OS.
+    - Functions adhere to the x86-32 System V ABI or
+      Microsoft x86 ABI based on the target OS.
     - Null-terminated strings are assumed where applicable.
 
 AUTHOR:

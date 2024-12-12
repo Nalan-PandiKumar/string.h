@@ -39,7 +39,7 @@ DECLARED FUNCTIONS:
 
 NOTE:
     - Functions adhere to the x86-32 System V ABI or
-      Microsoft x86 ABI based on the target OS.
+      Microsoft x32 ABI based on the target OS.
     - Null-terminated strings are assumed where applicable.
 
 AUTHOR:

@@ -190,6 +190,9 @@ strcat  PROC
         CALL malloc                     ; calling malloc
         ADD  ESP,4                      ; cleaning function arguments
 
+        TEST EAX,EAX                    ; Check for null pointer
+        JZ   malloc_failed              ; malloc failed
+
         MOV ECX,EAX                     ; ECX = heap_ptr
 
 strcat_destination:
@@ -218,70 +221,19 @@ strcat_return:
         LEAVE                           ; clean up stack frame
         RET                             ; return
 
+malloc_failed:
+        ;Epilogue
+        POP EDI                         ; Restore EDI
+        POP ESI                         ; Restore ESI
+        LEAVE                           ; clean up stack frame
+        RET                             ; return
         
 strcat  ENDP
 
 ; Function : (strncat)-> Concatenate a fixed number of characters from one string to another.
 ; char* strncat(char* dest, const char* src, size_t n);
 strncat PROC
-    ;Prologue
-    PUSH EBP                            ; Save EBP
-    MOV  EBP,ESP                        ; Establish a stack frame
-    PUSH EBX                            ; Save EBX
-    PUSH EDX                            ; Save EDX
-    PUSH ESI                            ; Save ESI
-    PUSH EDI                            ; Save EDI
-    MOV  EDI, DWORD PTR[EBP + 8]        ; Load the destination address into EDI 
-    MOV  ESI, DWORD PTR[EBP + 12]       ; Load the source address into ESI
-    MOV  ECX, DWORD PTR[EBP + 16]       ; Load the size (n) into ECX
 
-    PUSH EDI                            ; passing destination string as argument strlen
-    CALL strlen                         ; calling strlen
-    ADD  ESP,4                          ; cleaning function arguments
-    
-    MOV  EDX,EAX                        ; EDX = length of destination string
-    
-    
-    ADD  EDX,ECX                        ; EDX = length of destination string and source string need to be copied
-    INC  EDX                            ; EDX = EDX + 1 for null character
-
-    PUSH ECX                            ; Save ECX
-    PUSH EDX                            ; passing total length of concat string to malloc
-    CALL malloc                         ; calling malloc
-    ADD  ESP,4                          ; cleaning function arguments
-    POP  ECX                            ; Restore ECX
-
-    MOV EBX,EAX                         ; EBX = heap_ptr
-
-strncat_destination:
-    MOV  DL,BYTE PTR[EDI]               ; read charcater from destination string
-    TEST DL,DL                          ; check dl == 0 null byte
-    JZ   strncat_source                 ; destination string is over 
-    MOV  BYTE PTR[EBX],DL               ; write destination str to the heap location allocated malloc
-    INC  EDI                            ; increment destination pointer
-    INC  EBX                            ; increment heap pointer
-    JMP  strncat_destination            ; repeat the loop
-        
-strncat_source:
-    MOV  DL,BYTE PTR[ESI]               ; Read charcater from source string
-    TEST DL,DL                          ; Check the character is null
-    JZ   strncat_return                 ; If null return
-    MOV  BYTE PTR[EBX],DL               ; Write character to heap ptr address
-    INC  ESI                            ; Increment source pointer
-    INC  EBX                            ; Increment heap pointer
-    DEC  ECX                            ; Decrement the character count need to be copied
-    TEST ECX,ECX                        ; Check ECX = 0
-    JNZ  strncat_source                 ; If not 0 repeat the loop
-
-strncat_return:
-    MOV BYTE PTR[EBX],0                 ; append a null byte to concat string
-    ;Epilogue
-    PUSH EDI                            ; Restore EDI
-    PUSH ESI                            ; Restore ESI
-    PUSH EDX                            ; Restore EDX
-    PUSH EBX                            ; Restore EBX
-    LEAVE                               ; Clean up stack frame
-    RET                                 ; Return
 
 strncat ENDP
 
@@ -290,30 +242,31 @@ strncat ENDP
 strcmp  PROC
     PUSH EBP                            ; Save EBP
     MOV  EBP,ESP                        ; Estabilsh stack frame
-    PUSH EBX                            ; Save EBX
+    PUSH EDX
     PUSH ESI                            ; Save ESI
     PUSH EDI                            ; Save EDI
     MOV  EDI, DWORD PTR[EBP + 8]        ; Load the string1 address into EDI 
     MOV  ESI, DWORD PTR[EBP + 12]       ; Load the string2 address into ESI
 
 strcmp_loop:
-   
     MOV  AL,BYTE PTR[EDI]               ; Read charcater from string1
-    MOV  BL,BYTE PTR[ESI]               ; Read charcater from string2
-    TEST AL,BL                          ; Check either the string1 or string2 reached null
+    MOV  DL,BYTE PTR[ESI]               ; Read charcater from string1
+    CMP  AL,0                           ; Check character from string1 is null byte
     JZ   strcmp_return                  ; if reached null return
-    CMP  AL,BL                          ; Compare string1 chracter and string2 character
+    CMP  DL,0                           ; Check character from string2 is null byte
+    JZ   strcmp_return                  ; if reached null return
     INC  EDI                            ; Increment string1 pointer
     INC  ESI                            ; Increment string2 pointer
+    CMP  AL,DL                          ; Compare string1 chracter and string2 character
     JE   strcmp_loop                    ; If both the character are equal then continue the loop
 
 strcmp_return:
-    SUB   AL,BL                           ; Subtract the last charcaters 
+    SUB   AL,DL                           ; Compute difference between two characters
     MOVSX EAX,AL                          ; Write the computed difference with sign in EAX
     POP   EDI                             ; Restore EDI
     POP   ESI                             ; Restore ESI
-    POP   EBX                             ; Restore EBX
-    LEAVE                               ; Clean up stack frame
-    RET                                 ; Return
+    POP   EDX
+    LEAVE                                 ; Clean up stack frame
+    RET                                   ; Return
 strcmp  ENDP
 END

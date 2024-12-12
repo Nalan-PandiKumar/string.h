@@ -53,6 +53,7 @@ typedef int X32_MAX; //Signed maximum for X32-Bit architecture
 
 // FUNCTION DECLARATIONS
 extern  X32_UMAX strlen(const char* str);
-extern  void     strcpy(char* dest, const char* src);
-extern  void     strncpy(char* dest, char* src, X32_UMAX n);
-extern  char*    strcat(char* dest, char* src);
+extern  void     strcpy(char* dest,  const char* src);
+extern  void     strncpy(char* dest, const char* src, X32_UMAX n);
+extern  char*    strcat(char* dest,  const char* src);
+extern  char*    strncat(char* dest, const char* src, X32_UMAX n);

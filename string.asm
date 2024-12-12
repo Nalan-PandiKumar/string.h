@@ -107,6 +107,9 @@ strcpy_return:
     RET                     ; Return to caller
 strcpy  ENDP
 
+; Function : (strncpy) ->Copy a fixed number of characters from one string to another.
+; void  strncpy(char* dest, char* src, size_t n);
+
 strncpy PROC
     ; Prologue
     PUSH EBP                     ; Save EBP
@@ -140,15 +143,12 @@ strncpy_loop:
     CMP ECX,1                       ; Check ECX = 1 
     JNE  strncpy_loop               ; If not repeat the loop
     
-
 strncpy_pad:
     MOV BYTE PTR[EDI],0             ; Padd the remaining bytes with null
     DEC ECX                         ; Decrement the character count
     INC EDI                         ; Increment the destination pointer
     CMP ECX,0                       ; Check ECX = 0
     JNE strncpy_pad                 ; If not repeat the padding
-    
-
 
 strncpy_return:
     ; Epilogue
@@ -220,5 +220,69 @@ strcat_return:
 
         
 strcat  ENDP
+
+; Function : (strncat)-> Concatenate a fixed number of characters from one string to another.
+; char* strncat(char* dest, const char* src, size_t n);
+strncat PROC
+    ;Prologue
+    PUSH EBP                            ; Save EBP
+    MOV  EBP,ESP                        ; Establish a stack frame
+    PUSH EBX                            ; Save EBX
+    PUSH EDX                            ; Save EDX
+    PUSH ESI                            ; Save ESI
+    PUSH EDI                            ; Save EDI
+    MOV  EDI, DWORD PTR[EBP + 8]        ; Load the destination address into EDI 
+    MOV  ESI, DWORD PTR[EBP + 12]       ; Load the source address into ESI
+    MOV  ECX, DWORD PTR[EBP + 16]       ; Load the size (n) into ECX
+
+    PUSH EDI                            ; passing destination string as argument strlen
+    CALL strlen                         ; calling strlen
+    ADD  ESP,4                          ; cleaning function arguments
+    
+    MOV  EDX,EAX                        ; EDX = length of destination string
+    
+    
+    ADD  EDX,ECX                        ; EDX = length of destination string and source string need to be copied
+    INC  EDX                            ; EDX = EDX + 1 for null character
+
+    PUSH ECX                            ; Save ECX
+    PUSH EDX                            ; passing total length of concat string to malloc
+    CALL malloc                         ; calling malloc
+    ADD  ESP,4                          ; cleaning function arguments
+    POP  ECX                            ; Restore ECX
+
+    MOV EBX,EAX                         ; EBX = heap_ptr
+
+strncat_destination:
+    MOV  DL,BYTE PTR[EDI]               ; read charcater from destination string
+    TEST DL,DL                          ; check dl == 0 null byte
+    JZ   strncat_source                 ; destination string is over 
+    MOV  BYTE PTR[EBX],DL               ; write destination str to the heap location allocated malloc
+    INC  EDI                            ; increment destination pointer
+    INC  EBX                            ; increment heap pointer
+    JMP  strncat_destination            ; repeat the loop
+        
+strncat_source:
+    MOV  DL,BYTE PTR[ESI]               ; Read charcater from source string
+    TEST DL,DL                          ; Check the character is null
+    JZ   strncat_return                 ; If null return
+    MOV  BYTE PTR[EBX],DL               ; Write character to heap ptr address
+    INC  ESI                            ; Increment source pointer
+    INC  EBX                            ; Increment heap pointer
+    DEC  ECX                            ; Decrement the character count need to be copied
+    TEST ECX,ECX                        ; Check ECX = 0
+    JNZ  strncat_source                 ; If not 0 repeat the loop
+
+strncat_return:
+    MOV BYTE PTR[EBX],0                 ; append a null byte to concat string
+    ;Epilogue
+    PUSH EDI                            ; Restore EDI
+    PUSH ESI                            ; Restore ESI
+    PUSH EDX                            ; Restore EDX
+    PUSH EBX                            ; Restore EBX
+    LEAVE                               ; Clean up stack frame
+    RET                                 ; Return
+
+strncat ENDP
 
 END

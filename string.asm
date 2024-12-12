@@ -285,4 +285,35 @@ strncat_return:
 
 strncat ENDP
 
+; Function : (strcmp)-> Concatenate a fixed number of characters from one string to another.
+; int strcmp(const char *str1, const char *str2);
+strcmp  PROC
+    PUSH EBP                            ; Save EBP
+    MOV  EBP,ESP                        ; Estabilsh stack frame
+    PUSH EBX                            ; Save EBX
+    PUSH ESI                            ; Save ESI
+    PUSH EDI                            ; Save EDI
+    MOV  EDI, DWORD PTR[EBP + 8]        ; Load the string1 address into EDI 
+    MOV  ESI, DWORD PTR[EBP + 12]       ; Load the string2 address into ESI
+
+strcmp_loop:
+   
+    MOV  AL,BYTE PTR[EDI]               ; Read charcater from string1
+    MOV  BL,BYTE PTR[ESI]               ; Read charcater from string2
+    TEST AL,BL                          ; Check either the string1 or string2 reached null
+    JZ   strcmp_return                  ; if reached null return
+    CMP  AL,BL                          ; Compare string1 chracter and string2 character
+    INC  EDI                            ; Increment string1 pointer
+    INC  ESI                            ; Increment string2 pointer
+    JE   strcmp_loop                    ; If both the character are equal then continue the loop
+
+strcmp_return:
+    SUB   AL,BL                           ; Subtract the last charcaters 
+    MOVSX EAX,AL                          ; Write the computed difference with sign in EAX
+    POP   EDI                             ; Restore EDI
+    POP   ESI                             ; Restore ESI
+    POP   EBX                             ; Restore EBX
+    LEAVE                               ; Clean up stack frame
+    RET                                 ; Return
+strcmp  ENDP
 END

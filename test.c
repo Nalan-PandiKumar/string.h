@@ -4,11 +4,9 @@
 int main()
 {
 
-	char dest[] = "Nalan";
-	char src[] = "";
-	char* str = strncat(dest, src,13);
-	printf("strncat:%s",str);
-	free(str);
+	printf("strcmp:%d\n",strcmp("apple", "banana"));  // Returns a negative value (ASCII 'a' - 'b')
+	printf("strcmp:%d\n",strcmp("banana", "apple"));  // Returns a positive value (ASCII 'b' - 'a')
+
 	
 	return 0;
 }

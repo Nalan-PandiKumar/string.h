@@ -57,3 +57,4 @@ extern  void     strcpy(char* dest,  const char* src);
 extern  void     strncpy(char* dest, const char* src, X32_UMAX n);
 extern  char*    strcat(char* dest,  const char* src);
 extern  char*    strncat(char* dest, const char* src, X32_UMAX n);
+extern  X32_MAX  strcmp(const char* str1, const char* str2);

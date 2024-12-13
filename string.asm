@@ -49,8 +49,12 @@
 .386
 .model flat,c
 
-extern malloc : PROC
+extern printf : PROC
+extern exit   : PROC
 ; ====================================================================================================================
+.data 
+    ERROR_NULL_PTR BYTE "NULL POINTER DEREFERENCE",10,0
+
 .code
 
 ; Function : (strlen) ->Get the length of a null-terminated string.
@@ -61,6 +65,11 @@ strlen PROC
     MOV  EBP, ESP                 ; Establish stack frame
     PUSH ESI                      ; Save ESI
     MOV  ESI, DWORD PTR [EBP + 8] ; Load the string address into ESI
+
+    ;Check for source string is NULL
+    TEST ESI,ESI                  ; Check ESI is not null
+    JZ   strlen_failure           ; EXIT the program
+
     XOR  EAX, EAX                 ; Initialize EAX (length) to 0
 
 strlen_loop:
@@ -69,6 +78,13 @@ strlen_loop:
     INC  EAX                ; Increment length
     INC  ESI                ; Move to the next character
     JMP  strlen_loop        ; Repeat the loop
+
+strlen_failure:
+    MOV  EAX,1                   ; Indicate the error occured
+    PUSH OFFSET ERROR_NULL_PTR   ; Passing error message
+    CALL printf                  ; Display the error message
+    ADD  ESP,4                   ; Clean up arguments
+    CALL exit                    ; exit the program with failure code
 
 strlen_return:
     ;Epilogue
@@ -89,6 +105,12 @@ strcpy  PROC
     MOV  EDI,DWORD PTR[EBP + 8]         ; Load the destination address into EDI
     MOV  ESI,DWORD PTR[EBP + 12]        ; Load the source address into ESI
 
+    ; Check for NULL pointers
+    TEST EDI,EDI                        ; Check EDI (dest) is NULL
+    JZ   strcpy_failure                 ; If NULL, jump to failure
+    TEST ESI,ESI                        ; Check ESI (src) is NULL
+    JZ   strcpy_failure                 ; If NULL, jump to failure
+
 strcpy_loop:
     MOV AL, BYTE PTR [ESI]              ; Load the byte from the source into AL
     MOV BYTE PTR [EDI], AL              ; Write the byte from AL into the destination
@@ -97,6 +119,13 @@ strcpy_loop:
     INC ESI                             ; Increment src
     INC EDI                             ; Increment dest
     JMP strcpy_loop                     ; Repeat the loop
+
+strcpy_failure:
+    MOV  EAX,1                   ; Indicate the error occured
+    PUSH OFFSET ERROR_NULL_PTR   ; Passing error message
+    CALL printf                  ; Display the error message
+    ADD  ESP,4                   ; Clean up arguments
+    CALL exit                    ; exit the program with failure code
 
 strcpy_return:
     ;Epilogue
@@ -123,8 +152,12 @@ strncpy PROC
     MOV  ESI, DWORD PTR [EBP + 12]  ; Load the source address into ESI
     MOV  ECX, DWORD PTR [EBP + 16]  ; Load the size (n) into ECX
 
+    ; Check for NULL pointers
+    TEST EDI,EDI                         ; Check EDI (dest) is NULL
+    JZ   strncpy_failure                 ; If NULL, jump to failure
+    TEST ESI,ESI                         ; Check ESI (src) is NULL
+    JZ   strncpy_failure                 ; If NULL, jump to failure
     
-
     ; Check if n == 0 (Nothing to copy)
     TEST ECX, ECX                 ; Is ECX == 0?
     JZ strncpy_return             ; If yes, just return
@@ -159,76 +192,68 @@ strncpy_return:
     LEAVE                         ; Clean up stack frame
     RET                           ; Return to caller
 
+strncpy_failure:
+    MOV  EAX,1                   ; Indicate the error occured
+    PUSH OFFSET ERROR_NULL_PTR   ; Passing error message
+    CALL printf                  ; Display the error message
+    ADD  ESP,4                   ; Clean up arguments
+    CALL exit                    ; exit the program with failure code
+
+
 strncpy ENDP
 
-
-; Function : (strcat) ->Concatenate two null-terminated strings.
+; Function : (strcat) -> Concatenate two null-terminated strings.
 ; char* strcat(char* dest, const char* src)
-strcat  PROC
-        ;Prologue
-        PUSH EBP                        ; Save EBP
-        MOV  EBP,ESP                    ; Establish stack frame
-        PUSH ESI                        ; Save ESI
-        PUSH EDI                        ; Save EDI
-        MOV  EDI, DWORD PTR[EBP + 8]    ; Load the destination address into EDI
-        MOV  ESI, DWORD PTR[EBP + 12]   ; Load the source address into ESI
-        
-        PUSH EDI                        ; passing destination string as argument strlen
-        CALL strlen                     ; calling strlen
-        ADD  ESP,4                      ; cleaning function arguments
+strcat PROC
+       ; Prologue
+       PUSH EBP                     ; Save EBP
+       MOV  EBP,ESP                 ; Establish stack frame
+       PUSH EDX                     ; Save EDX
+       PUSH ESI                     ; Save ESI
+       PUSH EDI                     ; Save EDI
+       MOV  EDI, [EBP + 8]          ; Load destination string into EDI
+       MOV  ESI, [EBP + 12]         ; Load source string into ESI
 
-        MOV  ECX,EAX                    ; ECX = length of destination string
-        
-        PUSH ESI                        ; passing source string as argument strlen
-        CALL strlen                     ; calling strlen
-        ADD  ESP,4                      ; cleaning function arguments
+       ; Check for NULL pointers
+       TEST EDI,EDI                 ; Check EDI (dest) is NULL
+       JZ   strcat_failure          ; If NULL, jump to failure
+       TEST ESI,ESI                 ; Check ESI (src) is NULL
+       JZ   strcat_failure          ; If NULL, jump to failure
 
-        ADD  ECX,EAX                    ; ECX = length of destination string and source string
-        INC  ECX                        ; ECX = ECX + 1 for null character
+       MOV  EAX,EDI                 ; Store destination pointer for return
 
-        PUSH ECX                        ; passing total length of concat string to malloc
-        CALL malloc                     ; calling malloc
-        ADD  ESP,4                      ; cleaning function arguments
+loop_to_destination_end:
+       MOV  DL,BYTE PTR[EDI]        ; Read character from destination string
+       TEST DL,DL                   ; Check if character is 0 (NULL terminator)
+       JZ   append_source_string    ; If NULL, start appending source
+       INC  EDI                     ; Increment destination pointer
+       JMP  loop_to_destination_end ; Repeat the loop
 
-        TEST EAX,EAX                    ; Check for null pointer
-        JZ   malloc_failed              ; malloc failed
+append_source_string:
+       MOV  DL,BYTE PTR[ESI]        ; Read character from source string
+       TEST DL,DL                   ; Check if character is 0
+       JZ   strcat_success          ; If NULL, append NULL terminator and return
+       MOV  BYTE PTR[EDI],DL        ; Copy source character to destination
+       INC  EDI                     ; Increment destination pointer
+       INC  ESI                     ; Increment source pointer
+       JMP  append_source_string    ; Repeat the loop
 
-        MOV ECX,EAX                     ; ECX = heap_ptr
+strcat_success:
+       MOV BYTE PTR[EDI],0          ; Append NULL terminator at the end
+       JMP strcat_return            ; Return
 
-strcat_destination:
-        MOV DL,BYTE PTR[EDI]            ; read charcater from destination string
-        CMP DL,0                        ; check dl == 0 null byte
-        JZ  strcat_source               ; destination string is over 
-        MOV BYTE PTR[ECX],DL            ; write destination str to the heap location allocated malloc
-        INC EDI                         ; increment destination pointer
-        INC ECX                         ; increment heap pointer
-        JMP strcat_destination          ; repeat the loop
+strcat_failure:
+       XOR EAX,EAX                  ; Set EAX = 0 for failure return
 
-strcat_source:
-        MOV DL,BYTE PTR[ESI]            ; read charcater from source string
-        CMP DL,0                        ; check dl == 0 null byte
-        JZ  strcat_return               ; source string is over 
-        MOV BYTE PTR[ECX],DL            ; write destination str to the heap location allocated malloc
-        INC ESI                         ; increment source pointer
-        INC ECX                         ; increment heap pointer
-        JMP strcat_source               ; repeat the loop
-        
 strcat_return:
-        MOV BYTE PTR[ECX],0             ; append null byte to concated string
-        ;Epilogue
-        POP EDI                         ; Restore EDI
-        POP ESI                         ; Restore ESI
-        LEAVE                           ; clean up stack frame
-        RET                             ; return
+       ; Epilogue
+       POP EDI                      ; Restore EDI
+       POP ESI                      ; Restore ESI
+       POP EDX                      ; Restore EDX
+       LEAVE                        ; Clean up stack frame
+       RET                          ; Return
 
-malloc_failed:
-        ;Epilogue
-        POP EDI                         ; Restore EDI
-        POP ESI                         ; Restore ESI
-        LEAVE                           ; clean up stack frame
-        RET                             ; return
-        
-strcat  ENDP
+strcat ENDP
 
 ; Function : (strncat)-> Concatenate a fixed number of characters from one string to another.
 ; char* strncat(char* dest, const char* src, size_t n);
@@ -248,24 +273,41 @@ strcmp  PROC
     MOV  EDI, DWORD PTR[EBP + 8]        ; Load the string1 address into EDI 
     MOV  ESI, DWORD PTR[EBP + 12]       ; Load the string2 address into ESI
 
+    ; Check for NULL pointers
+    TEST EDI,EDI                 ; Check EDI (dest) is NULL
+    JZ   strcmp_failure          ; If NULL, jump to failure
+    TEST ESI,ESI                 ; Check ESI (src) is NULL
+    JZ   strcmp_failure          ; If NULL, jump to failure
+
 strcmp_loop:
     MOV  AL,BYTE PTR[EDI]               ; Read charcater from string1
     MOV  DL,BYTE PTR[ESI]               ; Read charcater from string1
     CMP  AL,0                           ; Check character from string1 is null byte
-    JZ   strcmp_return                  ; if reached null return
+    JZ   strcmp_success                 ; if reached null return
     CMP  DL,0                           ; Check character from string2 is null byte
-    JZ   strcmp_return                  ; if reached null return
+    JZ   strcmp_success                 ; if reached null return
     INC  EDI                            ; Increment string1 pointer
     INC  ESI                            ; Increment string2 pointer
     CMP  AL,DL                          ; Compare string1 chracter and string2 character
     JE   strcmp_loop                    ; If both the character are equal then continue the loop
 
-strcmp_return:
+strcmp_success:
     SUB   AL,DL                           ; Compute difference between two characters
     MOVSX EAX,AL                          ; Write the computed difference with sign in EAX
+    JMP   strcmp_return                   ; Return
+
+strcmp_failure:
+    MOV  EAX,1                             ; EAX = 1 indicate failure
+    PUSH OFFSET ERROR_NULL_PTR             ; Error indicates null pointer is passed to strcmp
+    CALL printf                            ; call to printf
+    ADD  ESP,4                             ; Function arguments clean up
+    CALL exit                              ; Exit program with stacks code 1
+
+strcmp_return:
+    ;Epilogue
     POP   EDI                             ; Restore EDI
     POP   ESI                             ; Restore ESI
-    POP   EDX
+    POP   EDX                             ; Restore EDX
     LEAVE                                 ; Clean up stack frame
     RET                                   ; Return
 strcmp  ENDP

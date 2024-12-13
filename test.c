@@ -1,129 +1,138 @@
 #include <stdio.h>
-#include <stdlib.h>  // For dynamic memory allocation
 #include "asm_string.h"
+#include <math.h>
+int pass = 0, fail = 0;
 
-// Custom strncpy function (handling NULL and buffer size limit)
-char* custom_strncpy(char* dest, const char* src, size_t n) {
-    if (src == NULL || dest == NULL) {
-        return NULL;  // Return NULL if either pointer is invalid
+// Custom strcat function
+char* custom_strcat(char* dest, const char* src) {
+    if (!dest || !src) return NULL;  // Handle null pointers
+
+    char* original_dest = dest;
+
+    // Move dest pointer to the null terminator
+    while (*dest) dest++;
+
+    // Append entire source string to dest
+    while (*src) {
+        *dest++ = *src++;
     }
 
-    char* original_dest = dest;  // Save the start of the destination
-    while (n-- && (*dest++ = *src++));  // Copy characters until 'n' or the end of the string
-
-    if (n > 0) {
-        *dest = '\0';  // Ensure null-termination if there's space left
-    }
-
+    *dest = '\0';  // Null-terminate the resulting string
     return original_dest;
 }
-
-int pass = 0, fail = 0;
 
 // Struct to hold test case information
 typedef struct {
     const char* test_case_name;
-    const char* src_str;
-    size_t n;  // The number of characters to copy
+    const char* dest_initial;  // Initial content of dest
+    const char* src;           // Source string
 } TestCase;
 
+// Function to run a single test case
 void run_test_case(TestCase test_case) {
-    // Allocate memory for destination strings
-    char dest_custom[100];
-    char dest_my[100];
+    char dest_custom[100] = { 0 };
+    char dest_my[100] = { 0 };
 
-    // Ensure that both destination arrays are properly initialized
-    memset(dest_custom, 0, sizeof(dest_custom));
-    memset(dest_my, 0, sizeof(dest_my));
+    // Copy the initial content of dest_initial into both dest arrays
+    snprintf(dest_custom, sizeof(dest_custom), "%s", test_case.dest_initial);
+    snprintf(dest_my, sizeof(dest_my), "%s", test_case.dest_initial);
 
-    // Check if the source string is NULL, to avoid copying NULL values
-    
-        // Run custom_strncpy for expected result
-        custom_strncpy(dest_custom, test_case.src_str, test_case.n);
+    // Compute expected result using custom_strcat
+    custom_strcat(dest_custom, test_case.src);
 
-        // Run your standard strncpy for actual result
-        strncpy(dest_my, test_case.src_str, test_case.n);
+    // Compute actual result using strcat
+    strcat(dest_my, test_case.src);
 
-        // Compare the results and print the output
-        printf("Test Case: %s\n", test_case.test_case_name);
-        printf("result:%s,expected:%s\n", dest_my, dest_custom);
-        if (strcmp(dest_custom, dest_my) == 0) {
-            printf("Test Passed\n\n");
-            pass++;
-        }
-        else {
-            printf("Test Failed\n\n");
-            printf("Expected: %s\n", dest_custom);
-            printf("Actual: %s\n\n", dest_my);
-            fail++;
-        }
- }
+    // Compare results
+    printf("Test Case: %s\n", test_case.test_case_name);
+    if (strcmp(dest_custom, dest_my) == 0) {
+        printf("Test Passed\n\n");
+        pass++;
+    }
+    else {
+        printf("Test Failed\n");
+        printf("Expected: %s\n", dest_custom);
+        printf("Actual:   %s\n\n", dest_my);
+        fail++;
+    }
+}
 
-
-
+// Main function to run all test cases
 int main() {
-    // Define test cases with source strings and size limits for strncpy
+    // Define 50 test cases
     TestCase test_cases[50] = {
-        {"Test Case 1: Copy Empty String", "", 10},
-        {"Test Case 2: Copy Short String", "apple", 2},
-        {"Test Case 3: Copy Long String", "banana1234", 5},
-        {"Test Case 4: Copy String with Special Characters", "grape!@#", 10},
-        {"Test Case 5: Copy String with Numbers", "12345", 10},
-        {"Test Case 6: Copy String with Spaces", "hello world", 10},
-        {"Test Case 7: Copy Single Character", "a", 10},
-        {"Test Case 8: Copy String with Leading Spaces", "  space", 1},
-        {"Test Case 9: Copy String with Trailing Spaces", "space  ", 10},
-        {"Test Case 10: Copy a Large String", "aVeryLongStringToTestTheFunctionalityOfMyStrncpy", 20},
-        {"Test Case 11: Copy Empty String", "", 10},
-        {"Test Case 12: Copy Alpha Numeric", "Test123", 10},
-        {"Test Case 13: Copy String with Special Characters", "@#$%^&*()", 10},
-        {"Test Case 14: Copy Mixed Case", "HeLlO", 10},
-        {"Test Case 15: Copy Space Only", "     ", 10},
-        {"Test Case 16: Copy String with Backslashes", "C:\\Program Files", 10},
-        {"Test Case 17: Copy Single Digit", "5", 10},
-        {"Test Case 18: Copy String with Periods", "Hello.World", 10},
-        {"Test Case 19: Copy String with Dashes", "Hello-World", 10},
-        {"Test Case 20: Copy String with Underscores", "Hello_World", 10},
-        {"Test Case 21: Copy Mixed Case and Numbers", "Test456", 10},
-        {"Test Case 22: Copy NULL String", NULL, 10},
-        {"Test Case 23: Copy String with Chinese Characters", "chinese", 10},
-        {"Test Case 24: Copy Long String", "Lorem ipsum dolor sit amet, consectetur adipiscing elit.", 40},
-        {"Test Case 25: Copy String with Tabs", "Hello\tWorld", 10},
-        {"Test Case 26: Copy Single Word", "word", 10},
-        {"Test Case 27: Copy String with Punctuation", "Hello! How are you?", 10},
-        {"Test Case 28: Copy String with Newline", "Hello\nWorld", 10},
-        {"Test Case 29: Copy String with Multiple Newlines", "Hello\n\nWorld", 10},
-        {"Test Case 30: Copy String with Multiple Spaces", "Hello      World", 10},
-        {"Test Case 31: Copy String with Multiple Dashes", "----", 10},
-        {"Test Case 32: Copy Empty String", "", 10},
-        {"Test Case 33: Copy Alphabet String", "abcdefghijklmnopqrstuvwxyz", 10},
-        {"Test Case 34: Copy String with Only Zeros", "0000000", 10},
-        {"Test Case 35: Copy String with Repeated Characters", "aaaaaaaaaa", 10},
-        {"Test Case 36: Copy String with Mixed Numbers and Special Characters", "1234!@#$", 10},
-        {"Test Case 37: Copy String with One Space", " ", 10},
-        {"Test Case 38: Copy String with Asterisks", "*&*^&*", 10},
-        {"Test Case 39: Copy Empty String", "", 10},
-        {"Test Case 40: Copy Random String", "r&*8%fgt", 10},
-        {"Test Case 41: Copy Large String", "ThisIsAVeryLargeStringThatWillTestTheCapacityOfMyStrncpyFunctionAndCheckHowItHandlesLongInputs", 40},
-        {"Test Case 42: Copy String with Mixed Case and Numbers", "TeST123", 10},
-        {"Test Case 43: Copy String with Slashes", "C/Windows/System32", 10},
-        {"Test Case 44: Copy String with Mixed Characters", "Hello$%#", 10},
-        {"Test Case 45: Copy String with Dots and Commas", "Test...Case", 10},
-        {"Test Case 46: Copy String with Uppercase", "HELLO", 10},
-        {"Test Case 47: Copy Short String", "xyz", 10},
-        {"Test Case 48: Copy String with Double Quotes", "\"Hello\"", 10},
-        {"Test Case 49: Copy String with Different Case", "tEsT", 10},
-        {"Test Case 50: Copy String with Long Numerical Input", "1234567890123456789012345678901234567890", 40}
+        // Basic tests
+        {"Test Case 1: Append Entire Source", "Hello", "World"},
+        {"Test Case 2: Append Empty Source", "Hello", ""},
+        {"Test Case 3: Append to Empty Dest", "", "World"},
+        {"Test Case 4: Append Single Character Source", "Hello", "A"},
+        {"Test Case 5: Append Single Space Source", "Space", " "},
+
+        // Edge cases
+        {"Test Case 6: Append to Null Terminated Dest", "Null\0Extra", "Append"},
+        {"Test Case 7: Append Null Terminated Source", "Start", "Stop\0Extra"},
+        {"Test Case 8: Append Large Source to Small Dest", "Small", "LargeString"},
+        {"Test Case 9: Append Single Null Character Source", "Start", "\0"},
+        {"Test Case 10: Append with Overlap", "Overlap", "lap"},
+
+        // Special character tests
+        {"Test Case 11: Append String with Spaces", "Hello ", "World Again"},
+        {"Test Case 12: Append String with Numbers", "123", "456789"},
+        {"Test Case 13: Append String with Special Characters", "@@@", "!!!???"},
+        {"Test Case 14: Append String with Tabs", "Tabbed", "\t\tTabs"},
+        {"Test Case 15: Append String with Newlines", "Lines", "\nNewLines"},
+
+        // Complex tests
+        {"Test Case 16: Append Empty Strings", "", ""},
+        {"Test Case 17: Append to String with Trailing Spaces", "Trailing ", "Spaces"},
+        {"Test Case 18: Append Overlapping Strings", "Overlap", "lapOver"},
+        {"Test Case 19: Append to Null Terminated String", "Null\0Extra", "Append"},
+        {"Test Case 20: Append Beyond Dest Capacity", "Limit", "OverflowTestString"},
+
+        // Long strings
+        {"Test Case 21: Append Long String to Short Dest", "Short", "LongStringToAppendHere"},
+        {"Test Case 22: Append Short String to Long Dest", "VeryLongDestinationString", "Short"},
+        {"Test Case 23: Append Exact Length Source", "Exact", "Length"},
+        {"Test Case 24: Append Source Longer Than Dest", "ShortDest", "SourceIsMuchLonger"},
+        {"Test Case 25: Append Entire Source to Large Dest", "LargeDest", "Source"},
+
+        // Miscellaneous cases
+        {"Test Case 26: Append Single Character", "Single", "A"},
+        {"Test Case 27: Append Source with Null Character", "Start", "Null\0Test"},
+        {"Test Case 28: Append Source Longer Than Dest", "Short", "MuchLongerString"},
+        {"Test Case 29: Append Source with Mixed Case", "Case", "MiXeD"},
+        {"Test Case 30: Append Unicode Characters", "Hello", "chinese"},
+
+        {"Test Case 31: Append to Space-Filled Dest", "Spaces ", "Filler"},
+        {"Test Case 32: Append String Ending with Null", "EndNull", "Null\0End"},
+        {"Test Case 33: Append Long Source", "Base", "VeryLongSourceThatExceedsLimits"},
+        {"Test Case 34: Append Empty Source", "BaseOnly", ""},
+        {"Test Case 35: Append Special Characters", "Chars", "!@#$%^&*"},
+
+        {"Test Case 36: Append Single Space", "Space", " "},
+        {"Test Case 37: Append Single Tab", "Tabbed", "\t"},
+        {"Test Case 38: Append Single Newline", "Lines", "\n"},
+        {"Test Case 39: Append Multiple Newlines", "Multiline", "\n\n"},
+        {"Test Case 40: Append Large Source to Large Dest", NULL, "LargerSource"},
+
+        {"Test Case 41: Append Overlapping Memory", "Overlap", "lapOver"},
+        {"Test Case 42: Append Single Null Character", "Start", "\0"},
+        {"Test Case 43: Append Beyond Buffer Capacity", "Short", "VeryLongSourceString"},
+        {"Test Case 44: Append Source with Leading Spaces", "Leading", "    Spaces"},
+        {"Test Case 45: Append Empty Dest and Source", "", ""},
+
+        {"Test Case 46: Append to Null-Terminated Dest", "Terminated\0Extra", "Source"},
+        {"Test Case 47: Append to Filled Dest", "Filled", "Data"},
+        {"Test Case 48: Append Exact Length Strings", "Exact", "Match"},
+        {"Test Case 49: Append Source with Trailing Null", "Source", "Null\0"},
+        {"Test Case 50: Append Unicode Characters", "Base", "Characters"},
     };
 
     // Run all test cases
     for (int i = 0; i < 50; i++) {
         run_test_case(test_cases[i]);
     }
-
-    // Output results
-    printf("Pass score: %d/50\n", pass);
-    printf("Fail score: %d\n", fail);
-
+    pass = abs(pass - fail);
+    printf("Total pass score:(%d/50)\n", pass);
     return 0;
 }

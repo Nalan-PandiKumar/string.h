@@ -206,13 +206,13 @@ strncpy ENDP
 ; char* strcat(char* dest, const char* src)
 strcat PROC
        ; Prologue
-       PUSH EBP                     ; Save EBP
-       MOV  EBP,ESP                 ; Establish stack frame
-       PUSH EDX                     ; Save EDX
-       PUSH ESI                     ; Save ESI
-       PUSH EDI                     ; Save EDI
-       MOV  EDI, [EBP + 8]          ; Load destination string into EDI
-       MOV  ESI, [EBP + 12]         ; Load source string into ESI
+       PUSH EBP                             ; Save EBP
+       MOV  EBP,ESP                         ; Establish stack frame
+       PUSH EDX                             ; Save EDX
+       PUSH ESI                             ; Save ESI
+       PUSH EDI                             ; Save EDI
+       MOV  EDI,DWORD PTR[EBP + 8]          ; Load destination string into EDI
+       MOV  ESI,DWORD PTR[EBP + 12]         ; Load source string into ESI
 
        ; Check for NULL pointers
        TEST EDI,EDI                 ; Check EDI (dest) is NULL
@@ -258,7 +258,61 @@ strcat ENDP
 ; Function : (strncat)-> Concatenate a fixed number of characters from one string to another.
 ; char* strncat(char* dest, const char* src, size_t n);
 strncat PROC
+    ;Prologue
+    PUSH EBP                        ; Save EBP
+    MOV  EBP,ESP                    ; Establish a stack frame
+    PUSH ECX                        ; Save ECX
+    PUSH EDX                        ; Save EDX
+    PUSH ESI                        ; Save ESI
+    PUSH EDI                        ; Save EDI
+    MOV  EDI,DWORD PTR[EBP + 8]      ; Load destination pointer into EDI
+    MOV  ESI,DWORD PTR[EBP + 12]     ; Load source pointer into ESI
+    MOV  ECX,DWORD PTR[EBP + 16]    ; Load the size(n) of character to append
 
+    ;Check for NULL pointers
+    TEST EDI,EDI                    ; Check EDI destination pointer is NULL
+    JZ   strncat_failure            ; If NULL exit the program
+    
+    TEST ESI,ESI                    ; Check ESI source pointer is NULL
+    JZ   strncat_failure            ; If NULL exit the program
+
+    MOV  EAX,EDI                    ; Store destination pointer for return
+
+loop_to_destination_end:
+    MOV  DL,BYTE PTR[EDI]           ; Read character from destination string
+    TEST DL,DL                      ; Check cheacter is NULL byte
+    JZ   append_source_string       ; If NULL start appending the source
+    INC  EDI                        ; Increment destination pointer
+    JMP  loop_to_destination_end    ; Repeat the loop
+
+append_source_string:
+    MOV  DL,BYTE PTR[ESI]           ; Read character from source string
+    TEST DL,DL                      ; Check the character is NULL byte
+    JZ   strncat_success            ; Return
+    CMP  ECX,0                      ; Check counter is zero
+    JZ   strncat_success            ; If counter is zero then return
+    MOV  BYTE PTR[EDI],DL           ; Write the character at the end of destination
+    INC  ESI                        ; Increment source pointer
+    INC  EDI                        ; Increment destination pointer
+    DEC  ECX                        ; Decrement counter
+    JMP  append_source_string       ; Repeat the loop
+
+strncat_success:
+    MOV BYTE PTR[EDI],0             ; Append the NULL character at the end
+    JMP strncat_return              ; Return
+
+strncat_failure:
+    XOR EAX,EAX                     ; EAX = 0
+
+strncat_return:
+
+    ;Epilogue
+    POP EDI                         ; Restore EDI
+    POP ESI                         ; Restore ESI
+    POP EDX                         ; Restore EDX
+    POP ECX                         ; Restore ECX
+    LEAVE                           ; Clean up stack frame
+    RET                             ; Return
 
 strncat ENDP
 

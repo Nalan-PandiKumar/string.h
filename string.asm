@@ -316,7 +316,7 @@ strncat_return:
 
 strncat ENDP
 
-; Function : (strcmp)-> Concatenate a fixed number of characters from one string to another.
+; Function : (strcmp)-> Compare two null-terminated strings.
 ; int strcmp(const char *str1, const char *str2);
 strcmp  PROC
     PUSH EBP                            ; Save EBP
@@ -430,4 +430,60 @@ strncmp_return:
     RET                                    ; Return
 
 strncmp ENDP
+
+; Function : (strchr)-> Locate the first occurrence of a character in a string.
+; char* strchr(const char* str, int c);
+
+strchr  PROC
+    ;Prologue
+    PUSH EBP                                ; Save EBP
+    MOV  EBP,ESP                            ; Establish a stack frame
+    PUSH ECX                                ; Save ECX
+    PUSH ESI                                ; Save ESI
+    MOV  ESI,DWORD PTR[EBP + 8]             ; Load the string to be searched into ESI
+    MOV  ECX,DWORD PTR[EBP + 12]            ; Laod the character to be searched into ECX
+
+    ;Check for NULL pointer
+    TEST ESI,ESI                            ; Check ESI is NULL pointer
+    JZ   strchr_failure                     ; If NULL then exit the program
+
+    ;Check for invalid c value
+    ;Valid c value exist between (0 to 255) in unsigned byte or (-128 to 127) in signed byte
+    CMP  ECX,255                            ; Check ECX is greater than 255
+    JG   strchr_not_found                   ; If ECX is greater return NULL
+
+    CMP  ECX,0                              ; Check ECX is lesser than 0
+    JL   strchr_not_found                   ; Check ECX is lesser return NULL
+
+strchr_loop:
+    MOV  AL,BYTE PTR[ESI]                   ; Load the character into AL
+    CMP  CL,AL                              ; Compare the character to be found with all characters
+    JE   strchr_found                       ; If match founnd then return
+    INC  ESI                                ; Increment source pointer
+    TEST AL,AL                              ; Check if AL is NULL
+    JNZ   strchr_loop                       ; If not NULL repeat loop
+
+strchr_not_found:
+    XOR EAX,EAX                             ; EAX = NULL
+    JMP strchr_return                       ; Return
+
+strchr_found:
+    MOV EAX,ESI                             ; EAX = address of match character
+    JMP strchr_return                       ; Return
+
+strchr_failure:
+    MOV  EAX,1                             ; EAX = 1 indicate failure
+    PUSH OFFSET ERROR_NULL_PTR             ; Error indicates null pointer is passed to strncmp
+    CALL printf                            ; call to printf
+    ADD  ESP,4                             ; Function arguments clean up
+    CALL exit                              ; Exit program with stacks code 1
+    
+strchr_return:
+    ;Epilogue
+    POP ESI                                 ; Restore ESI
+    POP ECX                                 ; Restore ECX
+    LEAVE                                   ; Clean up stack frame
+    RET                                     ; Return
+
+strchr  ENDP    
 END

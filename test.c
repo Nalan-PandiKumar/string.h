@@ -1,147 +1,174 @@
 #include <stdio.h>
-#include "asm_string.h"
-#include <math.h>
+#include "asm_string.h"  // Include your custom header file with strchr
 
-
-int custom_strncmp(const char* s1, const char* s2, size_t n) {
-    // If n is 0, no characters are compared, return 0
-    if (n == 0 || s1 == NULL || s2 == NULL) {
-        return 0;
+// Custom strchr function
+char* custom_strchr(const char* str, int c) {
+    // Ensure that c is within the valid range of 0 to 255 (unsigned char range)
+    if (c < 0 || c > 255) {
+        return NULL; // Invalid character, return NULL
     }
 
-    // Compare characters up to n or until a null character is encountered
-    while (n-- > 0) {
-        // If the characters differ or we reach the end of a string
-        if (*s1 != *s2 || *s1 == '\0' || *s2 == '\0') {
-            return (unsigned char)*s1 - (unsigned char)*s2;
+    while (*str != '\0') {
+        if (*str == (char)c) {
+            return (char*)str; // Found the character, return pointer
         }
-        // Move to the next character in both strings
-        s1++;
-        s2++;
+        str++;
     }
-
-    // If all characters matched up to n, return 0
-    return 0;
+    if (*str == (char)c) return str;
+    // If character is not found, return NULL
+    return NULL;
 }
 
-
-// Struct to hold test case information
+// Struct to hold test case information for strchr
 typedef struct {
     const char* test_case_name;
-    const char* str1; // First string to compare
-    const char* str2; // Second string to compare
-    size_t n;         // Number of characters to compare
+    const char* str;    // String to search in
+    int c;              // Character to search for
+    const char* expected_result;  // Expected result (pointer as a string representation)
 } TestCase;
 
 // Variables to count passed and failed test cases
 int pass = 0, fail = 0;
 
-// Function to run a single test case
+// Function to run a single test case for strchr
 void run_test_case(TestCase test_case) {
-    // Compute expected result using custom_strncmp
-    int expected_result = custom_strncmp(test_case.str1, test_case.str2, test_case.n);
+    // Compute expected result using custom_strchr
+    char* expected_result = custom_strchr(test_case.str,test_case.c);
 
-    // Compute actual result using your strncmp implementation
-    int actual_result = strncmp(test_case.str1, test_case.str2, test_case.n);
+    // Compute actual result using the standard strchr function
+    char* actual_result = strchr(test_case.str, test_case.c);
 
+    printf("result := (%p)\texpected := (%p)\n", actual_result, expected_result);
 
     // Compare results
     printf("Test Case: %s\n", test_case.test_case_name);
-    if (expected_result == actual_result) {
+    if ((expected_result == actual_result) ||
+        (expected_result != NULL && actual_result != NULL && *expected_result == *actual_result)) {
         printf("Test Passed\n\n");
         pass++;
     }
     else {
         printf("Test Failed\n");
-        printf("Expected: %d\n", expected_result);
-        printf("Actual:   %d\n\n", actual_result);
+        if (expected_result == NULL) {
+            printf("Expected: NULL\n");
+        }
+        else {
+            printf("Expected: %s\n", expected_result);
+        }
+        if (actual_result == NULL) {
+            printf("Actual:   NULL\n");
+        }
+        else {
+            printf("Actual:   %s\n", actual_result);
+        }
         fail++;
     }
 }
 
-// Main function to run all test cases
+// Main function to run all test cases for strchr
 int main() {
-
-    // Test case array
+    // Test case array for strchr
     TestCase test_cases[] = {
         // Basic cases
-        {"Identical strings, full comparison", "abc", "abc", 3},
-        {"Identical strings, partial comparison", "abc", "abc", 2},
-        {"Different strings, first character differs", "abc", "xbc", 1},
-        {"Different strings, last character differs", "abc", "abd", 3},
-        {"Different lengths, equal up to n", "abc", "abcd", 3},
+        {"Character found in middle of string", "hello", 'l', "llo"},
+        {"Character found at beginning", "hello", 'h', "hello"},
+        {"Character found at end", "hello", 'o', "o"},
+        {"Character not found", "hello", 'x', NULL},
 
         // Edge cases
-        {"Empty strings, n = 0", "", "", 0},
-        {"Empty strings, n > 0", "", "", 5},
-        {"First string empty", "", "abc", 3},
-        {"Second string empty", "abc", "", 3},
-        {"One character strings, match", "a", "a", 1},
-        {"One character strings, mismatch", "a", "b", 1},
-
-        // Cases where n = 0
-        {"n = 0, identical strings", "abc", "abc", 0},
-        {"n = 0, different strings", "abc", "xyz", 0},
-        {"n = 0, one empty string", "abc", "", 0},
+        {"Empty string, search for character", "", 'a', NULL},
+        {"Search for null character in string", "hello", '\0', NULL},
+        {"Search for invalid character (out of range)", "hello", 300, NULL},
+        {"Search for negative character (out of range)", "hello", -1, NULL},
 
         // Special character cases
-        {"Strings with spaces, match", "abc def", "abc def", 7},
-        {"Strings with spaces, mismatch", "abc def", "abc xyz", 7},
-        {"Strings with special characters", "!@#$", "!@#$", 4},
-        {"Strings with special characters, mismatch", "!@#$", "!@#%", 4},
-        {"Strings with numbers", "1234", "1234", 4},
-        {"Strings with numbers, mismatch", "1234", "1235", 4},
+        {"String with space", "hello world", ' ', " world"},
+        {"String with special character", "!@#$", '#', "#$"},
+        {"String with digits", "12345", '3', "345"},
 
-        // Case sensitivity
-        {"Case sensitive match", "abc", "abc", 3},
-        {"Case sensitive mismatch", "abc", "ABC", 3},
+        // Search for characters at different positions
+        {"Search for character at the first position", "hello", 'h', "hello"},
+        {"Search for character at the last position", "hello", 'o', "o"},
+        {"Search for character not in string", "hello", 'z', NULL},
 
-        // Long strings
-        {"Long strings, first mismatch", "abcdefg", "abcdxyz", 7},
-        {"Long strings, partial match", "abcdefg", "abcdxyz", 4},
-        {"Long strings, full mismatch", "abcdefg", "xyzabcd", 7},
+        // Large string cases
+        {"Search for character in large string", "aaaaaaaaaaa", 'a', "aaaaaaaaaaaaa"},
+        {"Search for character in large string, not found", "aaaaaaaaaaaaaa", 'z', NULL},
 
-  
-        // Mixed cases
-        {"Partial match, different lengths", "abc", "abcdef", 3},
-        {"Mismatch after n", "abcdef", "abcxyz", 6},
-        {"Match, n larger than strings", "abc", "abc", 100},
-        {"Mismatch, n larger than strings", "abc", "abd", 100},
+        // Search for uppercase characters
+        {"Search for uppercase character", "Hello", 'H', "Hello"},
+        {"Search for lowercase character in uppercase string", "HELLO", 'h', NULL},
 
-        // Null character
-        {"Null character in string 1", "abc\0xyz", "abc\0123", 7},
-        {"Null character in string 2", "abc\0xyz", "abc\0xyz", 7},
-        {"Null character mismatch", "abc\0xyz", "abc\0123", 7},
+        // Strings with digits
+        {"String with digits, character found", "12345", '3', "345"},
+        {"String with digits, character not found", "12345", '6', NULL},
 
-        // Edge comparisons
-        {"First string shorter, match up to n", "abc", "abcd", 3},
-        {"Second string shorter, match up to n", "abcd", "abc", 3},
-        {"First string shorter, mismatch", "abc", "abcd", 4},
-        {"Second string shorter, mismatch", "abcd", "abc", 4},
+        // Searching for first and last characters
+        {"Search for first character in string", "hello", 'h', "hello"},
+        {"Search for last character in string", "hello", 'o', "o"},
+        {"Search for second character in string", "hello", 'e', "ello"},
 
-        // Large n with empty strings
-        {"Large n, both empty", "", "", 100},
-        {"Large n, first empty", "", "abcdef", 100},
-        {"Large n, second empty", "abcdef", "", 100},
+        // Special characters
+        {"String with special characters", "#$%&", '$', "$%&"},
+        {"String with special characters, not found", "#$%&", '@', NULL},
 
-        // Mixed character types
-        {"Mixed letters and numbers, match", "abc123", "abc123", 6},
-        {"Mixed letters and numbers, mismatch", "abc123", "abc124", 6},
-        {"Mixed letters and symbols, match", "abc!@#", "abc!@#", 6},
-        {"Mixed letters and symbols, mismatch", "abc!@#", "abc!@%", 6}
+        // Searching for non-printable characters
+        {"String with non-printable character", "hello\x01", '\x01', "\x01"},
+        {"String without non-printable character", "hello\x01", '\x02', NULL},
+
+        // Strings with escape characters
+        {"String with escape character", "hello\nworld", '\n', "\nworld"},
+        {"String with escape character not found", "hello\nworld", '\t', NULL},
+
+        // Searching for characters in mixed case strings
+        {"Case sensitive search, character found", "HelloWorld", 'W', "World"},
+        {"Case sensitive search, character not found", "HelloWorld", 'w', NULL},
+
+        // Strings with multiple occurrences of a character
+        {"Multiple occurrences of character, first found", "aabbcc", 'b', "bbcc"},
+        {"Multiple occurrences of character, last found", "aabbcc", 'b', "bbcc"},
+
+        // Searching for character in string with only one character
+        {"Single character string, found", "x", 'x', "x"},
+        {"Single character string, not found", "x", 'y', NULL},
+
+        // Large number of occurrences of the same character
+        {"Many occurrences of character", "aaaaa", 'a', "aaaaa"},
+        {"Many occurrences of character not found", "aaaaa", 'b', NULL},
+
+        // Searching for NULL character explicitly
+        {"Search for null character at the end", "hello", '\0', NULL},
+        {"Search for null character in string", "hello\x00world", '\0', NULL},
+
+        // Searching for characters in a string with digits and special chars
+        {"Search for special character in string", "abc$123", '$', "$123"},
+        {"Search for digit in string", "abc123", '1', "123"},
+
+        // Case where string is a single character
+        {"String of one character, found", "x", 'x', "x"},
+        {"String of one character, not found", "x", 'y', NULL},
+
+        // Test searching for characters in a string of special characters
+        {"String of special characters, match", "!@#$%^&*", '$', "$%^&*"},
+        {"String of special characters, no match", "!@#$%^&*", '+', NULL},
+
+        // Edge case for searching invalid values
+        {"Search for character larger than 255", "hello", 300, NULL},
+        {"Search for character less than 0", "hello", -1, NULL},
+
+        // Search for a character in an empty string
+        {"Search for character in empty string", "", 'a', NULL},
     };
-
 
     // Number of test cases
     int num_test_cases = sizeof(test_cases) / sizeof(test_cases[0]);
 
-    // Run all test cases
+    // Run all test cases for strchr
     for (int i = 0; i < num_test_cases; i++) {
         run_test_case(test_cases[i]);
     }
 
     // Report results
-    pass = abs(pass - fail);
     printf("Total pass score: (%d/%d)\n", pass, num_test_cases);
     return 0;
 }

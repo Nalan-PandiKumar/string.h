@@ -1,138 +1,147 @@
 #include <stdio.h>
 #include "asm_string.h"
 #include <math.h>
-int pass = 0, fail = 0;
 
-// Custom strcat function
-char* custom_strcat(char* dest, const char* src) {
-    if (!dest || !src) return NULL;  // Handle null pointers
 
-    char* original_dest = dest;
-
-    // Move dest pointer to the null terminator
-    while (*dest) dest++;
-
-    // Append entire source string to dest
-    while (*src) {
-        *dest++ = *src++;
+int custom_strncmp(const char* s1, const char* s2, size_t n) {
+    // If n is 0, no characters are compared, return 0
+    if (n == 0 || s1 == NULL || s2 == NULL) {
+        return 0;
     }
 
-    *dest = '\0';  // Null-terminate the resulting string
-    return original_dest;
+    // Compare characters up to n or until a null character is encountered
+    while (n-- > 0) {
+        // If the characters differ or we reach the end of a string
+        if (*s1 != *s2 || *s1 == '\0' || *s2 == '\0') {
+            return (unsigned char)*s1 - (unsigned char)*s2;
+        }
+        // Move to the next character in both strings
+        s1++;
+        s2++;
+    }
+
+    // If all characters matched up to n, return 0
+    return 0;
 }
+
 
 // Struct to hold test case information
 typedef struct {
     const char* test_case_name;
-    const char* dest_initial;  // Initial content of dest
-    const char* src;           // Source string
+    const char* str1; // First string to compare
+    const char* str2; // Second string to compare
+    size_t n;         // Number of characters to compare
 } TestCase;
+
+// Variables to count passed and failed test cases
+int pass = 0, fail = 0;
 
 // Function to run a single test case
 void run_test_case(TestCase test_case) {
-    char dest_custom[100] = { 0 };
-    char dest_my[100] = { 0 };
+    // Compute expected result using custom_strncmp
+    int expected_result = custom_strncmp(test_case.str1, test_case.str2, test_case.n);
 
-    // Copy the initial content of dest_initial into both dest arrays
-    snprintf(dest_custom, sizeof(dest_custom), "%s", test_case.dest_initial);
-    snprintf(dest_my, sizeof(dest_my), "%s", test_case.dest_initial);
+    // Compute actual result using your strncmp implementation
+    int actual_result = strncmp(test_case.str1, test_case.str2, test_case.n);
 
-    // Compute expected result using custom_strcat
-    custom_strcat(dest_custom, test_case.src);
-
-    // Compute actual result using strcat
-    strcat(dest_my, test_case.src);
 
     // Compare results
     printf("Test Case: %s\n", test_case.test_case_name);
-    if (strcmp(dest_custom, dest_my) == 0) {
+    if (expected_result == actual_result) {
         printf("Test Passed\n\n");
         pass++;
     }
     else {
         printf("Test Failed\n");
-        printf("Expected: %s\n", dest_custom);
-        printf("Actual:   %s\n\n", dest_my);
+        printf("Expected: %d\n", expected_result);
+        printf("Actual:   %d\n\n", actual_result);
         fail++;
     }
 }
 
 // Main function to run all test cases
 int main() {
-    // Define 50 test cases
-    TestCase test_cases[50] = {
-        // Basic tests
-        {"Test Case 1: Append Entire Source", "Hello", "World"},
-        {"Test Case 2: Append Empty Source", "Hello", ""},
-        {"Test Case 3: Append to Empty Dest", "", "World"},
-        {"Test Case 4: Append Single Character Source", "Hello", "A"},
-        {"Test Case 5: Append Single Space Source", "Space", " "},
+
+    // Test case array
+    TestCase test_cases[] = {
+        // Basic cases
+        {"Identical strings, full comparison", "abc", "abc", 3},
+        {"Identical strings, partial comparison", "abc", "abc", 2},
+        {"Different strings, first character differs", "abc", "xbc", 1},
+        {"Different strings, last character differs", "abc", "abd", 3},
+        {"Different lengths, equal up to n", "abc", "abcd", 3},
 
         // Edge cases
-        {"Test Case 6: Append to Null Terminated Dest", "Null\0Extra", "Append"},
-        {"Test Case 7: Append Null Terminated Source", "Start", "Stop\0Extra"},
-        {"Test Case 8: Append Large Source to Small Dest", "Small", "LargeString"},
-        {"Test Case 9: Append Single Null Character Source", "Start", "\0"},
-        {"Test Case 10: Append with Overlap", "Overlap", "lap"},
+        {"Empty strings, n = 0", "", "", 0},
+        {"Empty strings, n > 0", "", "", 5},
+        {"First string empty", "", "abc", 3},
+        {"Second string empty", "abc", "", 3},
+        {"One character strings, match", "a", "a", 1},
+        {"One character strings, mismatch", "a", "b", 1},
 
-        // Special character tests
-        {"Test Case 11: Append String with Spaces", "Hello ", "World Again"},
-        {"Test Case 12: Append String with Numbers", "123", "456789"},
-        {"Test Case 13: Append String with Special Characters", "@@@", "!!!???"},
-        {"Test Case 14: Append String with Tabs", "Tabbed", "\t\tTabs"},
-        {"Test Case 15: Append String with Newlines", "Lines", "\nNewLines"},
+        // Cases where n = 0
+        {"n = 0, identical strings", "abc", "abc", 0},
+        {"n = 0, different strings", "abc", "xyz", 0},
+        {"n = 0, one empty string", "abc", "", 0},
 
-        // Complex tests
-        {"Test Case 16: Append Empty Strings", "", ""},
-        {"Test Case 17: Append to String with Trailing Spaces", "Trailing ", "Spaces"},
-        {"Test Case 18: Append Overlapping Strings", "Overlap", "lapOver"},
-        {"Test Case 19: Append to Null Terminated String", "Null\0Extra", "Append"},
-        {"Test Case 20: Append Beyond Dest Capacity", "Limit", "OverflowTestString"},
+        // Special character cases
+        {"Strings with spaces, match", "abc def", "abc def", 7},
+        {"Strings with spaces, mismatch", "abc def", "abc xyz", 7},
+        {"Strings with special characters", "!@#$", "!@#$", 4},
+        {"Strings with special characters, mismatch", "!@#$", "!@#%", 4},
+        {"Strings with numbers", "1234", "1234", 4},
+        {"Strings with numbers, mismatch", "1234", "1235", 4},
+
+        // Case sensitivity
+        {"Case sensitive match", "abc", "abc", 3},
+        {"Case sensitive mismatch", "abc", "ABC", 3},
 
         // Long strings
-        {"Test Case 21: Append Long String to Short Dest", "Short", "LongStringToAppendHere"},
-        {"Test Case 22: Append Short String to Long Dest", "VeryLongDestinationString", "Short"},
-        {"Test Case 23: Append Exact Length Source", "Exact", "Length"},
-        {"Test Case 24: Append Source Longer Than Dest", "ShortDest", "SourceIsMuchLonger"},
-        {"Test Case 25: Append Entire Source to Large Dest", "LargeDest", "Source"},
+        {"Long strings, first mismatch", "abcdefg", "abcdxyz", 7},
+        {"Long strings, partial match", "abcdefg", "abcdxyz", 4},
+        {"Long strings, full mismatch", "abcdefg", "xyzabcd", 7},
 
-        // Miscellaneous cases
-        {"Test Case 26: Append Single Character", "Single", "A"},
-        {"Test Case 27: Append Source with Null Character", "Start", "Null\0Test"},
-        {"Test Case 28: Append Source Longer Than Dest", "Short", "MuchLongerString"},
-        {"Test Case 29: Append Source with Mixed Case", "Case", "MiXeD"},
-        {"Test Case 30: Append Unicode Characters", "Hello", "chinese"},
+  
+        // Mixed cases
+        {"Partial match, different lengths", "abc", "abcdef", 3},
+        {"Mismatch after n", "abcdef", "abcxyz", 6},
+        {"Match, n larger than strings", "abc", "abc", 100},
+        {"Mismatch, n larger than strings", "abc", "abd", 100},
 
-        {"Test Case 31: Append to Space-Filled Dest", "Spaces ", "Filler"},
-        {"Test Case 32: Append String Ending with Null", "EndNull", "Null\0End"},
-        {"Test Case 33: Append Long Source", "Base", "VeryLongSourceThatExceedsLimits"},
-        {"Test Case 34: Append Empty Source", "BaseOnly", ""},
-        {"Test Case 35: Append Special Characters", "Chars", "!@#$%^&*"},
+        // Null character
+        {"Null character in string 1", "abc\0xyz", "abc\0123", 7},
+        {"Null character in string 2", "abc\0xyz", "abc\0xyz", 7},
+        {"Null character mismatch", "abc\0xyz", "abc\0123", 7},
 
-        {"Test Case 36: Append Single Space", "Space", " "},
-        {"Test Case 37: Append Single Tab", "Tabbed", "\t"},
-        {"Test Case 38: Append Single Newline", "Lines", "\n"},
-        {"Test Case 39: Append Multiple Newlines", "Multiline", "\n\n"},
-        {"Test Case 40: Append Large Source to Large Dest", NULL, "LargerSource"},
+        // Edge comparisons
+        {"First string shorter, match up to n", "abc", "abcd", 3},
+        {"Second string shorter, match up to n", "abcd", "abc", 3},
+        {"First string shorter, mismatch", "abc", "abcd", 4},
+        {"Second string shorter, mismatch", "abcd", "abc", 4},
 
-        {"Test Case 41: Append Overlapping Memory", "Overlap", "lapOver"},
-        {"Test Case 42: Append Single Null Character", "Start", "\0"},
-        {"Test Case 43: Append Beyond Buffer Capacity", "Short", "VeryLongSourceString"},
-        {"Test Case 44: Append Source with Leading Spaces", "Leading", "    Spaces"},
-        {"Test Case 45: Append Empty Dest and Source", "", ""},
+        // Large n with empty strings
+        {"Large n, both empty", "", "", 100},
+        {"Large n, first empty", "", "abcdef", 100},
+        {"Large n, second empty", "abcdef", "", 100},
 
-        {"Test Case 46: Append to Null-Terminated Dest", "Terminated\0Extra", "Source"},
-        {"Test Case 47: Append to Filled Dest", "Filled", "Data"},
-        {"Test Case 48: Append Exact Length Strings", "Exact", "Match"},
-        {"Test Case 49: Append Source with Trailing Null", "Source", "Null\0"},
-        {"Test Case 50: Append Unicode Characters", "Base", "Characters"},
+        // Mixed character types
+        {"Mixed letters and numbers, match", "abc123", "abc123", 6},
+        {"Mixed letters and numbers, mismatch", "abc123", "abc124", 6},
+        {"Mixed letters and symbols, match", "abc!@#", "abc!@#", 6},
+        {"Mixed letters and symbols, mismatch", "abc!@#", "abc!@%", 6}
     };
 
+
+    // Number of test cases
+    int num_test_cases = sizeof(test_cases) / sizeof(test_cases[0]);
+
     // Run all test cases
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < num_test_cases; i++) {
         run_test_case(test_cases[i]);
     }
+
+    // Report results
     pass = abs(pass - fail);
-    printf("Total pass score:(%d/50)\n", pass);
+    printf("Total pass score: (%d/%d)\n", pass, num_test_cases);
     return 0;
 }

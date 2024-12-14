@@ -321,7 +321,7 @@ strncat ENDP
 strcmp  PROC
     PUSH EBP                            ; Save EBP
     MOV  EBP,ESP                        ; Estabilsh stack frame
-    PUSH EDX
+    PUSH EDX                            ; Save EDX
     PUSH ESI                            ; Save ESI
     PUSH EDI                            ; Save EDI
     MOV  EDI, DWORD PTR[EBP + 8]        ; Load the string1 address into EDI 
@@ -335,7 +335,7 @@ strcmp  PROC
 
 strcmp_loop:
     MOV  AL,BYTE PTR[EDI]               ; Read charcater from string1
-    MOV  DL,BYTE PTR[ESI]               ; Read charcater from string1
+    MOV  DL,BYTE PTR[ESI]               ; Read charcater from string2
     CMP  AL,0                           ; Check character from string1 is null byte
     JZ   strcmp_success                 ; if reached null return
     CMP  DL,0                           ; Check character from string2 is null byte
@@ -365,4 +365,69 @@ strcmp_return:
     LEAVE                                 ; Clean up stack frame
     RET                                   ; Return
 strcmp  ENDP
+
+; Function : (strncmp)-> Compare a fixed number of characters of two strings.
+; int strcmp(const char *str1, const char *str2,size_t n);
+strncmp PROC
+    ;Prologue
+    PUSH EBP                              ; Save EBP
+    MOV  EBP,ESP                          ; Establish stack frame
+    PUSH EDX                              ; Save EDX
+    PUSH ECX                              ; Save ECX
+    PUSH EDI                              ; Save EDI
+    PUSH ESI                              ; Save ESI
+    MOV  EDI,DWORD PTR[EBP + 8]           ; Load the string1 into EDI
+    MOV  ESI,DWORD PTR[EBP + 12]          ; Load the string2 into ESI
+    MOV  ECX,DWORD PTR[EBP + 16]          ; Load the size(N) into ECX
+
+    ;Check for NULL pointers
+    TEST EDI,EDI                          ; Check EDI (str1) is NULL
+    JZ   strncmp_failure                  ; If NULL then exit program
+    TEST ESI,ESI                          ; Check ESI (str2) is NULL
+    JZ   strncmp_failure                  ; If NULL then exit program
+
+    XOR  EAX,EAX                          ; If ECX is zero then return 0
+
+    ;Check for ECX is zero
+    TEST ECX,ECX                          ; Check for ECX is Zero
+    JZ   strncmp_return                    ; Return
+
+
+strncmp_loop:
+    MOV  AL,BYTE PTR[EDI]                 ; Read charcater from string1
+    MOV  DL,BYTE PTR[ESI]                 ; Read charcater from string2
+    TEST AL,AL                            ; Check character from string1 is NULL byte
+    JZ   strncmp_success                  ; If NULL then return
+    TEST DL,DL                            ; Check character from string2 is NULL byte
+    JZ   strncmp_success                  ; If NULL then return
+    CMP  AL,DL                            ; Check character1 == character2
+    JNE  strncmp_success                  ; If character1 != character2 return
+    INC  EDI                              ; Increment destination pointer
+    INC  ESI                              ; Increment source pointer
+    DEC  ECX                              ; Decrement counter
+    TEST ECX,ECX                          ; Check counter is zero
+    JNZ   strncmp_loop                    ; If counter is not zero then repeat loop
+
+strncmp_success:
+    SUB AL,DL                             ; Compute difference between characters
+    MOVSX EAX,AL                          ; Load the result into EAX without altering sign
+    JMP   strncmp_return                  ; Return
+
+strncmp_failure:
+    MOV  EAX,1                             ; EAX = 1 indicate failure
+    PUSH OFFSET ERROR_NULL_PTR             ; Error indicates null pointer is passed to strncmp
+    CALL printf                            ; call to printf
+    ADD  ESP,4                             ; Function arguments clean up
+    CALL exit                              ; Exit program with stacks code 1
+
+strncmp_return:
+    ;Epilogue
+    POP ESI                                ; Restore ESI
+    POP EDI                                ; Restore EDI
+    POP ECX                                ; Restore ECX
+    POP EDX                                ; Restore EDX
+    LEAVE                                  ; Clean up stack frame
+    RET                                    ; Return
+
+strncmp ENDP
 END

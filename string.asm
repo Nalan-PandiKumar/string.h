@@ -485,5 +485,63 @@ strchr_return:
     LEAVE                                   ; Clean up stack frame
     RET                                     ; Return
 
-strchr  ENDP    
+strchr  ENDP
+; Function : (strrchr)-> Locate the last occurrence of a character in a string.
+; char* strrchr(const char* str, int c);
+strrchr PROC
+    ;Prologue
+    PUSH EBP                                ; Save EBP
+    MOV  EBP,ESP                            ; Establish a stack frame
+    PUSH ECX                                ; Save ECX
+    PUSH EDX                                ; Save EDX
+    PUSH ESI                                ; Save ESI
+    MOV  ESI,DWORD PTR[EBP + 8]             ; Load the string to be searched into ESI
+    MOV  ECX,DWORD PTR[EBP + 12]            ; Load the chracter to be searched into ECX
+
+    ;Check for NULL pointer
+    TEST ESI,ESI                            ; Check ESI is NULL pointer
+    JZ   strrchr_failure                    ; If NULL then exxit the program
+
+    XOR EAX,EAX                             ; EAX = 0
+
+    ;Check for invalid c value
+    ;Valid c value exist between (0 to 255) in unsigned byte or (-128 to 127) in signed byte
+    CMP ECX,255                             ; Check ECX is greater than 255 (ASCII Extended range)
+    JG  strrchr_return                      ; If ECX is greater return NULL
+
+    CMP ECX,0                               ; Check ECX is lesser than 0
+    JL  strrchr_return                      ; If ECX is lesser return NULL
+
+
+strrchr_loop:
+    MOV  DL,BYTE PTR[ESI]                   ; Load the character into DL
+    CMP  DL,CL                              ; Compare the character to be found with all characters
+    JE   strrchr_store_occur                ; If match founnd then store the occurance location
+
+strrchr_match_found:
+    INC  ESI                                ; Increment source pointer
+    TEST DL,DL                              ; Check if DL is NULL
+    JNZ  strrchr_loop                       ; If not NULL repeat loop
+    JMP  strrchr_return                     ; Return
+
+strrchr_store_occur:
+    MOV EAX,ESI                             ; Store the occurance location of matching charcater
+    JMP strrchr_match_found                 ; Continue the loop to check any other matching occurances
+
+strrchr_failure:
+    MOV  EAX,1                              ; EAX = 1 indicate failure
+    PUSH OFFSET ERROR_NULL_PTR              ; Error indicates null pointer is passed to strncmp
+    CALL printf                             ; call to printf
+    ADD  ESP,4                              ; Function arguments clean up
+    CALL exit                               ; Exit program with stacks code 1
+
+strrchr_return:
+    ;Epilogue
+    POP ESI                                 ; Save ESI
+    POP EDX                                 ; Save EDX
+    POP ECX                                 ; Save ECX
+    LEAVE                                   ; Clean up stack frame
+    RET                                     ; Return
+
+strrchr ENDP
 END

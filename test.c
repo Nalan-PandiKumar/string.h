@@ -1,46 +1,39 @@
 #include <stdio.h>
-#include "asm_string.h"  // Include your custom header file with strchr
+#include "asm_string.h"  
 
-// Custom strchr function
-char* custom_strchr(const char* str, int c) {
-    // Ensure that c is within the valid range of 0 to 255 (unsigned char range)
-    if (c < 0 || c > 255) {
-        return NULL; // Invalid character, return NULL
+
+char* custom_strrchr(const char* str, int c) {
+    char* last_occurrence = NULL;
+
+    if (c < 0 || c > 255 || str == NULL) {
+        return NULL; 
     }
 
     while (*str != '\0') {
         if (*str == (char)c) {
-            return (char*)str; // Found the character, return pointer
+            last_occurrence = (char*)str; 
         }
         str++;
     }
     if (*str == (char)c) return str;
-    // If character is not found, return NULL
-    return NULL;
+    return last_occurrence;
 }
 
-// Struct to hold test case information for strchr
 typedef struct {
     const char* test_case_name;
-    const char* str;    // String to search in
-    int c;              // Character to search for
-    const char* expected_result;  // Expected result (pointer as a string representation)
+    const char* str;    
+    int c;              
+    const char* expected_result;  
 } TestCase;
 
-// Variables to count passed and failed test cases
 int pass = 0, fail = 0;
 
-// Function to run a single test case for strchr
 void run_test_case(TestCase test_case) {
-    // Compute expected result using custom_strchr
-    char* expected_result = custom_strchr(test_case.str,test_case.c);
+    char* expected_result = custom_strrchr(test_case.str, test_case.c);
 
-    // Compute actual result using the standard strchr function
-    char* actual_result = strchr(test_case.str, test_case.c);
+    char* actual_result = strrchr(test_case.str, test_case.c);
 
-    printf("result := (%p)\texpected := (%p)\n", actual_result, expected_result);
 
-    // Compare results
     printf("Test Case: %s\n", test_case.test_case_name);
     if ((expected_result == actual_result) ||
         (expected_result != NULL && actual_result != NULL && *expected_result == *actual_result)) {
@@ -65,9 +58,7 @@ void run_test_case(TestCase test_case) {
     }
 }
 
-// Main function to run all test cases for strchr
 int main() {
-    // Test case array for strchr
     TestCase test_cases[] = {
         // Basic cases
         {"Character found in middle of string", "hello", 'l', "llo"},
@@ -160,15 +151,13 @@ int main() {
         {"Search for character in empty string", "", 'a', NULL},
     };
 
-    // Number of test cases
     int num_test_cases = sizeof(test_cases) / sizeof(test_cases[0]);
 
-    // Run all test cases for strchr
     for (int i = 0; i < num_test_cases; i++) {
         run_test_case(test_cases[i]);
+        system("python D:/sleep.py");
     }
 
-    // Report results
     printf("Total pass score: (%d/%d)\n", pass, num_test_cases);
     return 0;
 }

@@ -500,7 +500,7 @@ strrchr PROC
 
     ;Check for NULL pointer
     TEST ESI,ESI                            ; Check ESI is NULL pointer
-    JZ   strrchr_failure                    ; If NULL then exxit the program
+    JZ   strrchr_failure                    ; If NULL then exit the program
 
     XOR EAX,EAX                             ; EAX = 0
 
@@ -544,4 +544,74 @@ strrchr_return:
     RET                                     ; Return
 
 strrchr ENDP
+
+; Function : (strstr)-> Locate a substring within a string.
+; char* strstr(const char* haystack, const char* needle);
+
+strstr  PROC
+    ;Prologue
+    PUSH EBP                                          ; Save EBP
+    MOV  EBP,ESP                                      ; Establish stack frame
+    PUSH EBX                                          ; Save EBX
+    PUSH ECX                                          ; Save ECX
+    PUSH EDX                                          ; Save EDX
+    PUSH ESI                                          ; Save ESI
+    PUSH EDI                                          ; Save EDI
+    MOV  EAX,DWORD PTR[EBP + 8]                       ; Load haysatck(string) in which sub string to be searched
+    MOV  ESI,DWORD PTR[EBP + 12]                      ; Load needle(sub string) need to be searched
+
+    ; Check for needle(sub string) is NULL 
+    TEST ESI,ESI                                      ; Check needle(sub string) is NULL
+    JZ   strstr_failure                               ; If NULL then exit the program
+
+    ; Check for haystack(string) is NULL
+    TEST EAX,EAX                                      ; Check haystack(string) is NULL
+    JZ   strstr_failure                               ; If NULL then exit the program
+
+    MOV  EDI,EAX                                      ; Copy head (string) to EDI
+    MOV  ECX,ESI                                      ; Copy head (sub string) to ECX
+
+strstr_loop:
+    MOV  DL,BYTE PTR[ESI]                             ; Load a charcater from sub string (needle)
+    TEST DL,DL                                        ; Check character from needle is NULL byte
+    JZ   strstr_return                                ; Return match found
+    
+    MOV  BL,BYTE PTR[EDI]                             ; Load a character from string (haystack)
+    TEST BL,BL                                        ; Check character from haystack is NULL byte
+    JZ   strstr_not_found                             ; Return not match found
+
+    CMP  BL,DL                                        ; Check both characters are equal or not 
+    JE   strstr_inc_pointers                          ; Repeat the loop
+
+    INC  EAX                                          ; Increment haystack to search from next character 
+    MOV  EDI,EAX                                      ; Change the pointer of haystack to start from next character
+    MOV  ESI,ECX                                      ; Restore needle
+    JMP  strstr_loop                                  ; Repeat the loop
+
+strstr_inc_pointers:
+    INC EDI                                           ; Increment haystack pointer
+    INC ESI                                           ; Increment needle pointer
+    JMP strstr_loop                                   ; Repeat the loop
+
+strstr_failure:
+    MOV  EAX,1                                        ; EAX = 1 indicate failure
+    PUSH OFFSET ERROR_NULL_PTR                        ; Error indicates null pointer is passed to strncmp
+    CALL printf                                       ; call to printf
+    ADD  ESP,4                                        ; Function arguments clean up
+    CALL exit                                         ; Exit program with stacks code 1
+
+strstr_not_found:
+    XOR EAX,EAX                                       ; EAX = 0 needle(sub string) not found
+
+strstr_return:
+    ;Epilogue
+    POP EDI                                           ; Save EDI
+    POP ESI                                           ; Save ESI
+    POP EDX                                           ; Save EDX
+    POP ECX                                           ; Save ECX
+    POP EBX                                           ; Save EBX
+    LEAVE                                             ; Clean up stack frame
+    RET                                               ; Return
+
+strstr  ENDP
 END

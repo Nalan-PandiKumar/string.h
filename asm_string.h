@@ -61,3 +61,4 @@ extern  X32_MAX  strcmp(const char* str1, const char* str2);
 extern  X32_MAX  strncmp(const char* str1, const char* str2, X32_UMAX n);
 extern  char*    strchr(const char* str, X32_MAX c);
 extern  char*    strrchr(const char* str, X32_MAX c);
+extern  char*    strstr(const char* haystack, const char* needle);

@@ -52,8 +52,10 @@
 extern printf : PROC
 extern exit   : PROC
 ; ====================================================================================================================
+
 .data 
-    ERROR_NULL_PTR BYTE "NULL POINTER DEREFERENCE",10,0
+    ERROR_NULL_PTR BYTE "NULL POINTER DEREFERENCE",10,0 ; Error Message for NULL pointer derefernce
+    strtok_static_ptr DWORD 0                           ; Reserve space for the pointer (4 bytes on x86)
 
 .code
 
@@ -537,9 +539,9 @@ strrchr_failure:
 
 strrchr_return:
     ;Epilogue
-    POP ESI                                 ; Save ESI
-    POP EDX                                 ; Save EDX
-    POP ECX                                 ; Save ECX
+    POP ESI                                 ; Restore ESI
+    POP EDX                                 ; Restore EDX
+    POP ECX                                 ; Restore ECX
     LEAVE                                   ; Clean up stack frame
     RET                                     ; Return
 
@@ -605,13 +607,144 @@ strstr_not_found:
 
 strstr_return:
     ;Epilogue
-    POP EDI                                           ; Save EDI
-    POP ESI                                           ; Save ESI
-    POP EDX                                           ; Save EDX
-    POP ECX                                           ; Save ECX
-    POP EBX                                           ; Save EBX
+    POP EDI                                           ; Restore EDI
+    POP ESI                                           ; Restore ESI
+    POP EDX                                           ; Restore EDX
+    POP ECX                                           ; Restore ECX
+    POP EBX                                           ; Restore EBX
     LEAVE                                             ; Clean up stack frame
     RET                                               ; Return
 
 strstr  ENDP
+
+; Function : (strtok)-> Tokenize a string using a delimiter.
+; char *strtok(char *str, const char *delims);
+
+strtok  PROC
+    ;Prologue
+    PUSH EBP                                           ; Save EBP
+    MOV  EBP,ESP                                       ; Establish stack frame
+    PUSH EDX                                           ; Save EDX
+    PUSH ECX                                           ; Save ECX
+    PUSH EBX                                           ; Save EBX
+    PUSH ESI                                           ; Save ESI
+    PUSH EDI                                           ; Save EDI
+    MOV  ESI,DWORD PTR[EBP + 8]                        ; Load string into ESI
+    MOV  EDI,DWORD PTR[EBP + 12]                       ; Load delimeters into EDI
+
+    ;Allocate is_delim flag
+    SUB ESP,4                                          ; Flag for is_delim check
+
+    ; Check for (delimeter) NULL ptr
+    TEST EDI,EDI                                       ; Check delimeter is NULL
+    JZ   strtok_failure                                ; If then exit the program
+
+    XOR EAX,EAX                                        ; Initialize return as NULL    
+
+    ; Check for NULL pointer
+    TEST ESI,ESI                                       ; If ESI is not NULL then skip delimeters
+    JNZ  strtok_skip_lead_delims                       ; Skip the leading delimeters
+    
+
+strtok_init_static_pointer:
+    MOV  ESI,DWORD PTR[strtok_static_ptr]              ; Intialize the static pointer to ESI
+    TEST ESI,ESI                                       ; Check no more tokens
+    JZ   strtok_return_null_token                      ; Return NULL token
+
+strtok_skip_lead_delims:
+    CMP  BYTE PTR[ESI],0                               ; Check character is NULL byte
+    JZ   strtok_init_null_ptr                          ; Initialize static pointer as NULL
+    XOR  ECX,ECX                                       ; Initialize inner loop counter
+    MOV  DWORD PTR[ESP],0                              ; Initialize the flag(is_delim) as zero
+strtok_check_lead_delims:
+    MOV  BL,BYTE PTR[ESI]                              ; Load character into BL
+    MOV  DL,BYTE PTR[EDI + ECX]                        ; Load delimeter into DL
+    
+    TEST DL,DL                                         ; Check all delimeters are compared
+    JZ   strtok_check_delim                            ; Check any charcater matched the delimeter
+
+    CMP  BL,DL                                         ; If both characater  and delimeter are equal
+    JE   strtok_set_is_delim                           ; Set the delim flag as true
+
+    INC  ECX                                           ; Increment inner loop counter
+    JMP  strtok_check_lead_delims                      ; Repeat the loop untill delim encounetr a NULL
+
+strtok_check_delim:
+    CMP DWORD PTR[ESP],0                               ; If the delim flag is not set then break the loop
+    JE  strtok_init_token_start                        ; Initialize starting address of token
+    INC ESI                                            ; Iterate to next character in string
+    JMP strtok_skip_lead_delims                        ; Repeat the outer loop unitll found a valid character
+
+strtok_set_is_delim:
+     MOV  DWORD PTR[ESP],1                             ; Set the flag(is_delim) 
+     JMP  strtok_check_delim                           ; Check the status of the delim flag
+
+
+strtok_init_token_start:
+     MOV  EAX,ESI                                      ; Initialize start address of token to be returned
+
+
+strtok_split_token:
+    CMP  BYTE PTR[ESI],0                               ; Check character is NULL byte
+    JZ   strtok_init_null_ptr                          ; Initialize static pointer as NULL
+    XOR  ECX,ECX                                       ; Initialize loop counter as zero
+    MOV  DWORD PTR[ESP],0                              ; Initialize the flag(is_delim) as zero
+strtok_token_generator:
+    MOV  BL,BYTE PTR[ESI]                              ; Load character into BL
+    MOV  DL,BYTE PTR[EDI + ECX]                        ; Load delimeter into DL
+    
+    TEST DL,DL                                         ; Check all delimeters are compared
+    JZ   strtok_split_check_delim                      ; Check any charcater matched the delimeter
+
+    CMP  BL,DL                                         ; If both characater  and delimeter are equal
+    JE   strtok_split_set_is_delim                     ; Set the delim flag as true
+
+    INC  ECX                                           ; Increment inner loop counter
+    JMP  strtok_token_generator                        ; Repeat the loop untill all delim's are compared
+
+
+strtok_split_check_delim:
+    CMP DWORD PTR[ESP],1                               ; If the delim flag is set then break the loop
+    JE  strtok_terminate_token                         ; Terminate the token end with NULL
+    INC ESI                                            ; Iterate to next character in string
+    JMP strtok_split_token                             ; Repeat the outer loop untill NULL byte is encountered
+
+
+strtok_split_set_is_delim:
+    MOV  DWORD PTR[ESP],1                              ; Set the flag(is_delim) 
+    JMP  strtok_split_check_delim                      ; Check the delim is encountered
+
+
+strtok_terminate_token:
+    MOV  BYTE PTR[ESI],0                               ; Terminate the end with NULL byte
+    INC  ESI                                           ; To mark the next token start point
+    MOV  DWORD PTR[strtok_static_ptr],ESI              ; Store the remaining string in static pointer
+    JMP  strtok_return                                 ; Return token
+
+strtok_init_null_ptr:
+    MOV  strtok_static_ptr,0                           ; No more tokens can be seperated
+    JMP  strtok_return                                 ; Return token
+
+strtok_failure:
+    MOV  EAX,1                                         ; EAX = 1 indicate failure
+    PUSH OFFSET ERROR_NULL_PTR                         ; Error indicates null pointer is passed to strncmp
+    CALL printf                                        ; call to printf
+    ADD  ESP,4                                         ; Function arguments clean up
+    CALL exit                                          ; Exit program with stacks code 1
+
+strtok_return_null_token:
+    XOR  EAX,EAX                                       ; Return NULL token
+
+strtok_return:
+    ;Epilogue
+    ADD ESP,4                                          ; Clean local variable (is_delim)
+    POP EDI                                            ; Restore EDI
+    POP ESI                                            ; Restore ESI
+    POP EBX                                            ; Restore EBX
+    POP ECX                                            ; Restore ECX
+    POP EDX                                            ; Restore EDX
+    LEAVE                                              ; Clean up stack frame
+    RET                                                ; Return
+
+strtok  ENDP
 END

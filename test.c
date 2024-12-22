@@ -1,53 +1,102 @@
 #include <stdio.h>
-#include <math.h>
 #include "asm_string.h"
 
-// Custom implementation of strstr
-char* custom_strstr(const char* haystack, const char* needle) {
-    if (!haystack || !needle) return NULL; // Null check
-    if (*needle == '\0') return (char*)haystack; // Empty needle
+// Custom implementation of strtok
+char* custom_strtok(char* str, const char* delim) {
+    static char* saved_str = NULL;
 
-    while (*haystack) {
-        const char* h = haystack;
-        const char* n = needle;
-
-        while (*h && *n && *h == *n) {
-            h++;
-            n++;
-        }
-
-        if (*n == '\0') return (char*)haystack; // Match found
-        haystack++;
+    if (str == NULL) {
+        str = saved_str;
     }
 
-    return NULL; // No match found
+    // If no string to process, return NULL
+    if (str == NULL) {
+        return NULL;
+    }
+
+    // Skip leading delimiters
+    while (*str && strchr(delim, *str)) {
+        ++str;
+    }
+
+    // If end of string is reached, return NULL
+    if (*str == '\0') {
+        saved_str = NULL;
+        return NULL;
+    }
+
+    // Start of the token
+    char* token_start = str;
+
+    // Find the end of the token
+    while (*str && !strchr(delim, *str)) {
+        ++str;
+    }
+
+    // Null-terminate the token if a delimiter is found
+    if (*str) {
+        *str = '\0';
+        saved_str = str + 1;
+    }
+    else {
+        saved_str = NULL;
+    }
+
+    return token_start;
 }
 
 // Test case structure
 typedef struct {
     const char* test_case_name;
-    const char* haystack;
-    const char* needle;
-    const char* expected_result;
+    char input[100];
+    const char* delim;
+    const char* expected_tokens[15]; // Expected tokens (up to 10 tokens per case)
 } TestCase;
 
 int pass = 0, fail = 0;
 
 // Run a single test case
 void run_test_case(TestCase test_case) {
-    char* actual_result = custom_strstr(test_case.haystack, test_case.needle);
-    const char* expected_result = strstr(test_case.haystack, test_case.needle);
-
     printf("Test Case: %s\n", test_case.test_case_name);
-    if (actual_result == expected_result ||
-        (actual_result && expected_result && strcmp(actual_result, expected_result) == 0)) {
+
+    char input_copy[100];
+    strcpy(input_copy, test_case.input); // Preserve original input
+
+    char* token = strtok(input_copy, test_case.delim);
+    int token_index = 0;
+    int is_pass = 1;
+
+    while (token != NULL || test_case.expected_tokens[token_index] != NULL) {
+        const char* expected = test_case.expected_tokens[token_index];
+
+        if ((token == NULL && expected != NULL) || (token != NULL && expected == NULL) ||
+            (token != NULL && strcmp(token, expected) != 0)) {
+            is_pass = 0;
+            break;
+        }
+
+        token = strtok(NULL, test_case.delim);
+        token_index++;
+    }
+
+    if (is_pass) {
         printf("Test Passed\n\n");
         pass++;
     }
     else {
         printf("Test Failed\n");
-        printf("Expected: %s\n", expected_result ? expected_result : "NULL");
-        printf("Actual:   %s\n\n", actual_result ? actual_result : "NULL");
+        printf("Expected Tokens: ");
+        for (int i = 0; test_case.expected_tokens[i] != NULL; i++) {
+            printf("%s ", test_case.expected_tokens[i]);
+        }
+        printf("\nActual Tokens:   ");
+        strcpy(input_copy, test_case.input);
+        token = strtok(input_copy, test_case.delim);
+        while (token != NULL) {
+            printf("%s ", token);
+            token = strtok(NULL, test_case.delim);
+        }
+        printf("\n\n");
         fail++;
     }
 }
@@ -55,115 +104,57 @@ void run_test_case(TestCase test_case) {
 int main() {
     // Define test cases
     TestCase test_cases[] = {
-        // Basic test cases
-        {"Basic match in the middle", "hello world", "world", "world"},
-        {"Basic match at start", "hello world", "hello", "hello world"},
-        {"Basic match at end", "hello world", "d", "d"},
-        {"No match", "hello world", "test", NULL},
-        {"Empty needle", "hello world", "", "hello world"},
-
-        // Edge cases
-        {"Empty haystack and needle", "", "", ""},
-        {"Empty haystack", "", "test", NULL},
-        {"Long needle", "short", "longneedle", NULL},
-
-        // Case sensitivity
-        {"Case-sensitive match", "Hello World", "World", "World"},
-        {"Case-sensitive no match", "Hello World", "world", NULL},
-
-        // Substring of a word
-        {"Substring in middle of word", "abcdef", "cde", "cdef"},
-        {"Substring at start", "abcdef", "abc", "abcdef"},
-        {"Substring at end", "abcdef", "def", "def"},
-
-        // Multiple occurrences
-        {"Multiple matches", "abababab", "aba", "ababab"},
-        {"Overlapping matches", "aaaaa", "aaa", "aaaa"},
-
-        // Special characters
-        {"Special character match", "abc$%^&*", "$%", "$%^&*"},
-        {"Special character no match", "abc$%^&*", "@", NULL},
-
-        // Numbers
-        {"Numeric substring", "1234567890", "456", "4567890"},
-        {"No numeric match", "1234567890", "987", NULL},
-
-        // Non-printable characters
-        {"Non-printable character match", "hello\x01world", "\x01", "\x01world"},
-        {"Non-printable character no match", "hello\x01world", "\x02", NULL},
-
-        // Escape sequences
-        {"Escape character match", "hello\nworld", "\n", "\nworld"},
-        {"Escape character no match", "hello\nworld", "\t", NULL},
-
-        // Single-character needles
-        {"Single character match", "abcdef", "c", "cdef"},
-        {"Single character no match", "abcdef", "z", NULL},
-
-        // Large strings
-        {"Match in large string", "aaaaaaaaaaaaaaaaaaaab", "b", "b"},
-        {"No match in large string", "aaaaaaaaaaaaaaaaaaaa", "b", NULL},
-
-        // Long needles and haystacks
-        {"Match long needle in long haystack", "thisisaverylongstringwithmanycharacters", "string", "stringwithmanycharacters"},
-        {"No match long needle in long haystack", "thisisaverylongstringwithmanycharacters", "none", NULL},
-
-        // Unicode characters
-        {"Unicode match", "helloworld", "", "world"},
-        {"Unicode no match", "helloworld", "", NULL},
-
-        // Repeated patterns
-        {"Repeated pattern match", "abababababab", "abab", "ababababab"},
-        {"Repeated pattern no match", "abababababab", "abc", NULL},
-
-        // Null haystack or needle
-        {"Null haystack", "NULL", "test", NULL},
-        {"Null needle", "hello world", "NULL", NULL},
-
-        // Mixed cases
-        {"Mixed case match", "HelloWorld", "World", "World"},
-        {"Mixed case no match", "HelloWorld", "world", NULL},
-
-        // Overlapping partial matches
-        {"Overlapping partial match", "aaabaaa", "aaa", "aaabaaa"},
-        {"Overlapping partial no match", "aaabaaa", "aaaa", NULL},
-
-        // Strings with digits and characters
-        {"Digits and characters match", "abc123", "123", "123"},
-        {"Digits and characters no match", "abc123", "456", NULL},
-
-        // Escaped sequences
-        {"Escaped sequence match", "hello\\nworld", "\\n", "\\nworld"},
-        {"Escaped sequence no match", "hello\\nworld", "\\t", NULL},
-
-        // Searching entire string
-        {"Match entire string", "abcdef", "abcdef", "abcdef"},
-        {"No match with extra character", "abcdef", "abcdefg", NULL},
-
-        // Partial matches
-        {"Partial match start mismatch", "abcdef", "abz", NULL},
-        {"Partial match end mismatch", "abcdef", "abcz", NULL},
-
-        // Repeating single character
-        {"Repeating character match", "aaaaaa", "aaa", "aaaaaa"},
-        {"Repeating character no match", "aaaaaa", "aab", NULL},
-
-        // Large haystack and needle
-        {"Large haystack", "aaaaaaaaaaaaaaab", "ab", "ab"},
-        {"Large needle not in haystack", "aaaaaaaaaaaaaaaa", "ba", NULL},
+        {"Basic tokenization", "hello,world", ",", {"hello", "world", NULL}},
+        {"Single delimiter", "a,b,c", ",", {"a", "b", "c", NULL}},
+        {"Multiple delimiters", "a,,b,,c", ",", {"a", "b", "c", NULL}},
+        {"Leading delimiters", ",,a,b,c", ",", {"a", "b", "c", NULL}},
+        {"Trailing delimiters", "a,b,c,,", ",", {"a", "b", "c", NULL}},
+        {"Spaces as delimiters", "a b c", " ", {"a", "b", "c", NULL}},
+        {"Mixed delimiters", "a,b c", ", ", {"a", "b", "c", NULL}},
+        {"Only delimiters", ",,,,", ",", {NULL}},
+        {"No delimiters", "abc", ",", {"abc", NULL}},
+        {"Empty input", "", ",", {NULL}},
+        {"Empty delimiter", "abc", "", {"abc", NULL}},
+        {"Numbers and letters", "123abc456", "abc", {"123", "456", NULL}},
+        {"Special characters", "!@#abc$%^", "abc", {"!@#", "$%^", NULL}},
+        {"Mixed whitespace", " a b\tc\n", " \t\n", {"a", "b", "c", NULL}},
+        {"Case-sensitive tokens", "Hello,world", ",", {"Hello", "world", NULL}},
+        {"Repeating single character", "aaa", "a", {NULL}},
+        {"Nested delimiters", "a,b,,c", ",", {"a", "b", "c", NULL}},
+        {"Non-printable characters", "a\x01\x02", "\x01\x02", {"a", NULL}},
+        {"Escape sequences", "a\\nb\\tc", "\\nt", {"a", "b", "c", NULL}},
+        {"Long string", "a,b,c,d,e,f,g,h,i,j", ",", {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", NULL}},
+        {"Delimiter at start and end", ",a,b,c,", ",", {"a", "b", "c", NULL}},
+        {"Multiple space tokens", "  a   b  c ", " ", {"a", "b", "c", NULL}},
+        {"Delimiter as part of token", "a,b,c,", ",", {"a", "b", "c", NULL}},
+        {"Mixed alphanumeric", "123,abc,456", ",", {"123", "abc", "456", NULL}},
+        {"Mixed symbols", "a@b#c", "@#", {"a", "b", "c", NULL}},
+        {"Digits only", "123,456", ",", {"123", "456", NULL}},
+        {"Tokens with spaces", "a b , c d", ", ", {"a", "b", "c", "d", NULL}},
+        {"Delimiter overlap", "aaabaaa", "aaa", {"b", NULL}},
+        {"Tab-separated", "a\tb\tc", "\t", {"a", "b", "c", NULL}},
+        {"Newline-separated", "a\nb\nc", "\n", {"a", "b", "c", NULL}},
+        {"Single-character string", "a", ",", {"a", NULL}},
+        {"Delimiter-only string", ",", ",", {NULL}},
+        {"Tokens with punctuation", "a.b,c!", ",.!?", {"a", "b", "c", NULL}},
+        {"Token length variation", "a,abc,abcd", ",", {"a", "abc", "abcd", NULL}},
+        {"Consecutive delimiters", "a,,b,c", ",", {"a", "b", "c", NULL}},
+        {"Complex input", "a,b;c.d", ",;.", {"a", "b", "c", "d", NULL}},
+        {"Numeric tokens", "123,456,789", ",", {"123", "456", "789", NULL}},
+        {"Partial token overlap", "abcabcabc", "abc", {NULL}},
+        {"Repeated delimiters", "a,,,b", ",", {"a", "b", NULL}},
+        {"Delimiter with spaces", "a , b , c", ", ", {"a", "b", "c", NULL}},
+        {"Mixed case tokens", "a,A,b,B", ",", {"a", "A", "b", "B", NULL}},
     };
 
     int num_test_cases = sizeof(test_cases) / sizeof(test_cases[0]);
 
-    // Run test cases
-    system("color a");
     for (int i = 0; i < num_test_cases; i++) {
         run_test_case(test_cases[i]);
-        system("python d:/sleep.py");
     }
 
-    // Print summary
-    printf("Total Pass Score: (%d/51)\n", abs(pass - fail));
+    printf("Total Passed: %d\n", pass);
+    printf("Total Failed: %d\n", fail);
 
     return 0;
 }

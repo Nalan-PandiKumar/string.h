@@ -747,4 +747,54 @@ strtok_return:
     RET                                                ; Return
 
 strtok  ENDP
+
+; Function : (memcpy)-> Copy a block of memory from one location to another.
+; void *memcpy(void *dest, const void *src, size_t numBytes);
+
+memcpy  PROC
+    ;Prologue
+    PUSH EBP                                           ; Save EBP 
+    MOV  EBP,ESP                                       ; Establish stack frame 
+    PUSH EBX                                           ; Save EBX
+    PUSH ECX                                           ; Save ECX
+    PUSH EDI                                           ; Save EDI
+    PUSH ESI                                           ; Save ESI
+    MOV  EDI,DWORD PTR[EBP+8]                          ; Load the destination pointer into memory
+    MOV  ESI,DWORD PTR[EBP+12]                         ; Load the source pointer into memory
+    MOV  ECX,DWORD PTR[EBP+16]                         ; Load the number of bytes(numBytes) to be copied from src to dest
+    
+    ;Check for NULL pointers
+    TEST EDI,EDI                                       ; Check if the destination pointer is NULL
+    JZ   memcpy_failure                                ; If NULL then exit the program
+        
+    TEST ESI,ESI                                       ; Check if the source pointer is NULL
+    JZ   memcpy_failure                                ; If NULL then exit the program
+
+memcpy_loop:
+    TEST ECX,ECX                                       ; Check ECX is zero
+    JZ   memcpy_return                                 ; If zero then all bytes are copied then exit
+    MOV  BL,BYTE PTR[ESI]                              ; Copy a byte from ESI to BL
+    MOV  BYTE PTR[EDI],BL                              ; Copy a byte from BL to EDI
+    DEC  ECX                                           ; Decrement ECX
+    INC  EDI                                           ; Increment destination pointer
+    INC  ESI                                           ; Increment source pointer
+    JMP  memcpy_loop                                   ; Repeat the loop untill all bytes are copied
+
+memcpy_failure:
+    MOV  EAX,1                                         ; EAX = 1 indicate failure
+    PUSH OFFSET ERROR_NULL_PTR                         ; Error indicates null pointer is passed to strncmp
+    CALL printf                                        ; call to printf
+    ADD  ESP,4                                         ; Function arguments clean up
+    CALL exit                                          ; Exit program with stacks code 1
+
+memcpy_return:
+    POP  ESI                                           ; Restore ESI
+    POP  EDI                                           ; Restore EDI
+    POP  ECX                                           ; Restore ECX
+    LEAVE                                              ; Clean up stack frame
+    RET                                                ; Return
+
+memcpy  ENDP
+
+
 END

@@ -63,3 +63,5 @@ extern  char*    strchr(const char* str, X32_MAX c);
 extern  char*    strrchr(const char* str, X32_MAX c);
 extern  char*    strstr(const char* haystack, const char* needle);
 extern  char*    strtok(char* str, const char* delims);
+extern  void*    memcpy(void* dest, const void* src, X32_UMAX numBytes);
+

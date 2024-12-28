@@ -46,7 +46,7 @@ void run_test_case(TestCase test_case) {
 
     memcpy(actual, test_case.input, test_case.size);
 
-    if (custom_memcmp(test_case.expected, actual, test_case.size) == 0) {
+    if (memcmp(test_case.expected, actual, test_case.size) == 0) {
         printf("Test Passed\n\n");
         pass++;
     }
@@ -153,7 +153,8 @@ int main() {
     }
 
     // Print summary
-    printf("Pass Score: (%d/%d)\n", abs(pass-fail),total_tests);
+    printf("Pass Score: %d\n", pass);
+    printf("Fail Score: %d\n", fail);
 
     return 0;
 }

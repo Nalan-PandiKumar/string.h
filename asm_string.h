@@ -26,9 +26,9 @@ DECLARED FUNCTIONS:
     10) strstr: Locate a substring within a string.
     11) strtok: Tokenize a string using a delimiter.
     12) memcpy: Copy a block of memory from one location to another.
-    13) memmove: Safely copy overlapping blocks of memory.
-    14) memset: Fill a block of memory with a specific value.
-    15) memcmp: Compare two blocks of memory.
+    13) memcmp: Compare two blocks of memory.
+    14) memmove: Safely copy overlapping blocks of memory.
+    15) memset: Fill a block of memory with a specific value.
     16) strdup: Create a duplicate of a string (non-standard, but widely used).
     17) strerror: Return a string describing an error code.
     18) strspn: Get the length of the initial substring matching a set of characters.
@@ -64,4 +64,4 @@ extern  char*    strrchr(const char* str, X32_MAX c);
 extern  char*    strstr(const char* haystack, const char* needle);
 extern  char*    strtok(char* str, const char* delims);
 extern  void*    memcpy(void* dest, const void* src, X32_UMAX numBytes);
-
+extern  X32_MAX  memcmp(const void* ptr1, const void* ptr2, X32_MAX n);

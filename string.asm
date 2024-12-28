@@ -21,9 +21,9 @@
 ;   - strstr: Locate a substring within a string.
 ;   - strtok: Tokenize a string using a delimiter.
 ;   - memcpy: Copy a block of memory from one location to another.
+;   - memcmp: Compare two blocks of memory.
 ;   - memmove: Safely copy overlapping blocks of memory.
 ;   - memset: Fill a block of memory with a specific value.
-;   - memcmp: Compare two blocks of memory.
 ;   - strdup: Create a duplicate of a string (non-standard, but widely used).
 ;   - strerror: Return a string describing an error code.
 ;   - strspn: Get the length of the initial substring matching a set of characters.
@@ -796,5 +796,65 @@ memcpy_return:
 
 memcpy  ENDP
 
+; Function : (memcmp)-> Compare two blocks of memory.
+; int memcmp(const void* ptr1, const void* ptr2, size_t n)
+
+memcmp  PROC
+    ;Prologue
+    PUSH EBP                                           ; Save EBP
+    MOV  EBP,ESP                                       ; Establish stack frame
+    PUSH EDX                                           ; Save EDX
+    PUSH ECX                                           ; Save ECX
+    PUSH EBX                                           ; Save EBX
+    PUSH EDI                                           ; Save EDI
+    PUSH ESI                                           ; Save ESI
+    MOV  EDI,DWORD PTR[EBP + 8]                        ; Load string-1 into EDI
+    MOV  ESI,DWORD PTR[EBP + 12]                       ; Load string-2 into ESI
+    MOV  ECX,DWORD PTR[EBP + 16]                       ; Load the number of bytes(n) to be compared from string-1 and string-2
+
+    ;Check for NULL pointers
+    TEST EDI,EDI                                       ; Check if the string-1 pointer is NULL
+    JZ   memcmp_failure                                ; If NULL then exit the program
+
+    TEST ESI,ESI                                       ; Check if the string-2 pointer is NULL
+    JZ   memcmp_failure                                ; If NULL then exit the program
+
+    ;Intialize EAX to 0
+    XOR EAX,EAX                                        ; EAX = 0
+
+memcmp_loop:
+    TEST ECX,ECX                                       ; Check ECX is zero
+    JZ   memcmp_return                                 ; If zero then all bytes are compared then exit
+    MOV  DL,BYTE PTR[EDI]                              ; Copy a byte from EDI to DL
+    MOV  BL,BYTE PTR[ESI]                              ; Copy a byte from ESI to BL
+    DEC  ECX                                           ; Decrement counter
+    INC  EDI                                           ; Increment string1 pointer
+    INC  ESI                                           ; Increment string2 pointer
+    CMP  BL,DL                                         ; Compare a byte from BL and DL
+    JE   memcmp_loop                                   ; Repeat the loop untill byte from both strings are equal
+
+memcmp_result:
+    SUB   BL,DL                                        ; Compute the difference between the data in both bytes
+    MOVSX EAX,BL                                       ; Write the computed difference with sign in EAX
+    JMP   memcmp_return                                ; Return the difference
+
+memcmp_failure:
+    MOV  EAX,1                                         ; EAX = 1 indicate failure
+    PUSH OFFSET ERROR_NULL_PTR                         ; Error indicates null pointer is passed to strncmp
+    CALL printf                                        ; call to printf
+    ADD  ESP,4                                         ; Function arguments clean up
+    CALL exit                                          ; Exit program with stacks code 1
+
+memcmp_return:
+    ;Epilogue
+    POP  ESI                                           ; Save ESI
+    POP  EDI                                           ; Save EDI
+    POP  EBX                                           ; Save EBX
+    POP  ECX                                           ; Save ECX
+    POP  EDX                                           ; Save EDX
+    LEAVE                                              ; Clean up stack frame
+    RET                                                ; Return
+
+memcmp  ENDP
 
 END

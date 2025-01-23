@@ -759,8 +759,8 @@ memcpy  PROC
     PUSH ECX                                           ; Save ECX
     PUSH EDI                                           ; Save EDI
     PUSH ESI                                           ; Save ESI
-    MOV  EDI,DWORD PTR[EBP+8]                          ; Load the destination pointer into memory
-    MOV  ESI,DWORD PTR[EBP+12]                         ; Load the source pointer into memory
+    MOV  EDI,DWORD PTR[EBP+8]                          ; Load the destination pointer 
+    MOV  ESI,DWORD PTR[EBP+12]                         ; Load the source pointer 
     MOV  ECX,DWORD PTR[EBP+16]                         ; Load the number of bytes(numBytes) to be copied from src to dest
     
     ;Check for NULL pointers
@@ -847,14 +847,64 @@ memcmp_failure:
 
 memcmp_return:
     ;Epilogue
-    POP  ESI                                           ; Save ESI
-    POP  EDI                                           ; Save EDI
-    POP  EBX                                           ; Save EBX
-    POP  ECX                                           ; Save ECX
-    POP  EDX                                           ; Save EDX
+    POP  ESI                                           ; Restore ESI
+    POP  EDI                                           ; Restore EDI
+    POP  EBX                                           ; Restore EBX
+    POP  ECX                                           ; Restore ECX
+    POP  EDX                                           ; Restore EDX
     LEAVE                                              ; Clean up stack frame
     RET                                                ; Return
 
 memcmp  ENDP
+
+; Function : (memset)-> Fill a block of memory with a specific value.
+; void*    memset(void* str, int c, X32_UMAX n);
+
+
+memset  PROC
+    ;PROLOUGE
+    PUSH EBP                                          ; Save EBP
+    MOV  EBP,ESP                                      ; Establish stack frame 
+    PUSH ECX                                          ; Save ECX
+    PUSH EDI                                          ; Save EDI
+    PUSH EDX                                          ; Save EDX
+
+    MOV  EDI,DWORD PTR[EBP + 8]                       ; Load destination pointer 
+    MOV  EAX,EDI                                      ; Copy the base address
+    MOV  DL,BYTE PTR[EBP + 12]                        ; Load the character to be filled in destination
+    MOV  ECX,DWORD PTR[EBP + 16]                      ; Load the number of bytes need to filled
+
+    ; Check for NULL pointer
+    TEST EDI,EDI                                      ; Check the destination pointer is NULL
+    JZ   memset_failure                               ; If NULL then exit the program
+
+
+    ; Check if size is zero
+    TEST ECX, ECX                                     ; Test if ECX is zero
+    JZ memset_return                                  ; If zero, skip filling
+
+@@:
+    MOV BYTE PTR[EDI],DL                              ; Copy the character into the destination byte
+    INC EDI                                           ; Increment destination
+    DEC ECX                                           ; Decrement counter
+    JNZ @B                                            ; Repeat the loop
+    JMP memset_return                                 ; Return the initialized destination address
+
+memset_failure:
+    MOV  EAX,1                                        ; EAX = 1 indicate failure
+    PUSH OFFSET ERROR_NULL_PTR                        ; Error indicates null pointer is passed to strncmp
+    CALL printf                                       ; call to printf
+    ADD  ESP,4                                        ; Function arguments clean up
+    CALL exit                                         ; Exit program with stacks code 1
+
+memset_return:
+    ;EPILOUGE
+    POP EDX                                           ; Restore EDX
+    POP EDI                                           ; Restore EDI
+    POP ECX                                           ; Restore ECX
+    LEAVE                                             ; Clean up stack frame
+    RET                                               ; Return
+
+memset  ENDP
 
 END

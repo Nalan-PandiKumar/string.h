@@ -1,39 +1,25 @@
 #include <stdio.h>
 #include <stddef.h>
-#include "asm_string.h"
+#include "asm_string.h" // Include your custom memset implementation header
 
+// Custom reference memset implementation (for testing purposes)
+void* test_memset(void* str, int c, size_t n) {
+    if (!str)
+        return NULL;
 
-
-// Custom memcpy implementation
-void* custom_memcpy(void* dest, const void* src, size_t n) {
-    unsigned char* d = (unsigned char*)dest;
-    const unsigned char* s = (const unsigned char*)src;
-
+    unsigned char* s = (unsigned char*)str;
     for (size_t i = 0; i < n; i++) {
-        d[i] = s[i];
+        s[i] = (unsigned char)c;
     }
-    return dest;
-}
-
-// Custom memcmp implementation
-int custom_memcmp(const void* ptr1, const void* ptr2, size_t n) {
-    const unsigned char* p1 = (const unsigned char*)ptr1;
-    const unsigned char* p2 = (const unsigned char*)ptr2;
-
-    for (size_t i = 0; i < n; i++) {
-        if (p1[i] != p2[i]) {
-            return (p1[i] > p2[i]) - (p1[i] < p2[i]);
-        }
-    }
-    return 0;
+    return str;
 }
 
 // Test case structure
 typedef struct {
-    const char* test_case_name;
-    void* input;
-    size_t size;
-    void* expected;
+    const char* test_case_name; // Description of the test case
+    char input[100];            // Input buffer
+    int fill_value;             // Value to set
+    size_t size;                // Number of bytes to set
 } TestCase;
 
 int pass = 0, fail = 0;
@@ -42,23 +28,41 @@ int pass = 0, fail = 0;
 void run_test_case(TestCase test_case) {
     printf("Test Case: %s\n", test_case.test_case_name);
 
-    unsigned char actual[100] = { 0 };
+    // Prepare input for memset
+    char actual[100], expected[100];
+    for (size_t i = 0; i < sizeof(test_case.input); i++) {
+        actual[i] = test_case.input[i];
+        expected[i] = test_case.input[i];
+    }
 
-    memcpy(actual, test_case.input, test_case.size);
+    // Generate expected result using reference function
+    test_memset(expected, test_case.fill_value, test_case.size);
 
-    if (memcmp(test_case.expected, actual, test_case.size) == 0) {
+    // Call your custom memset function
+    memset(NULL, test_case.fill_value, test_case.size);
+
+    // Compare results
+    int is_passed = 1;
+    for (size_t i = 0; i < sizeof(test_case.input); i++) {
+        if (actual[i] != expected[i]) {
+            is_passed = 0;
+            break;
+        }
+    }
+
+    if (is_passed) {
         printf("Test Passed\n\n");
         pass++;
     }
     else {
         printf("Test Failed\n");
         printf("Expected: ");
-        for (size_t i = 0; i < test_case.size; i++) {
-            printf("%02X ", ((unsigned char*)test_case.expected)[i]);
+        for (size_t i = 0; i < sizeof(test_case.input); i++) {
+            printf("%02X ", (unsigned char)expected[i]);
         }
         printf("\nActual:   ");
-        for (size_t i = 0; i < test_case.size; i++) {
-            printf("%02X ", actual[i]);
+        for (size_t i = 0; i < sizeof(test_case.input); i++) {
+            printf("%02X ", (unsigned char)actual[i]);
         }
         printf("\n\n");
         fail++;
@@ -66,83 +70,55 @@ void run_test_case(TestCase test_case) {
 }
 
 int main() {
-    // Data definitions for test cases
-    char str1[] = "Hello, World!";
-    char str2[] = "Test";
-    int int_array1[] = { 1, 2, 3, 4 };
-    int int_array2[] = { -1, -2, -3, -4 };
-    float float_array1[] = { 1.1f, 2.2f, 3.3f };
-    float float_array2[] = { -1.1f, -2.2f, -3.3f };
-    struct {
-        int id;
-        char name[10];
-    } custom_struct = { 42, "StructTest" };
-    unsigned char random_bytes[] = { 0xDE, 0xAD, 0xBE, 0xEF };
-
-    // 50 test cases
+    // Define 50 test cases
     TestCase test_cases[] = {
-        // String tests
-        {"Copy Full String", str1, sizeof(str1), str1},
-        {"Copy Partial String", str1, 5, "Hello"},
-        {"Copy Empty String", "", 0, ""},
-        {"Copy String with Null", "abc\0def", 7, "abc\0def"},
-        {"Copy String Overlapping Memory", "OverlapTest", 8, "OverlapT"},
-
-        // Integer array tests
-        {"Copy Full Integer Array", int_array1, sizeof(int_array1), int_array1},
-        {"Copy Partial Integer Array", int_array1, 2 * sizeof(int), (int[]) { 1, 2 }},
-        {"Copy Empty Integer Array", int_array1, 0, ""},
-        {"Copy Negative Integer Array", int_array2, sizeof(int_array2), int_array2},
-        {"Copy Mixed Integer Array", (int[]) { 1, -1, 2, -2 }, 4 * sizeof(int), (int[]) { 1, -1, 2, -2 }},
-
-        // Float array tests
-        {"Copy Full Float Array", float_array1, sizeof(float_array1), float_array1},
-        {"Copy Partial Float Array", float_array1, 2 * sizeof(float), (float[]) { 1.1f, 2.2f }},
-        {"Copy Negative Float Array", float_array2, sizeof(float_array2), float_array2},
-        {"Copy Mixed Float Array", (float[]) { 1.0f, -1.0f }, 2 * sizeof(float), (float[]) { 1.0f, -1.0f }},
-        {"Copy Empty Float Array", float_array1, 0, ""},
-
-        // Struct tests
-        {"Copy Full Struct", &custom_struct, sizeof(custom_struct), &custom_struct},
-        {"Copy Partial Struct", &custom_struct, 4, &(int){42}},
-        {"Copy Struct Name Only", custom_struct.name, 10, "StructTest"},
-        {"Copy Struct ID Only", &custom_struct.id, 4, &(int){42}},
-        {"Copy Empty Struct", &custom_struct, 0, ""},
-
-        // Random byte tests
-        {"Copy Random Bytes", random_bytes, sizeof(random_bytes), random_bytes},
-        {"Copy Partial Random Bytes", random_bytes, 2, (unsigned char[]) { 0xDE, 0xAD }},
-        {"Copy Empty Random Bytes", random_bytes, 0, ""},
-        {"Copy Single Byte", random_bytes, 1, (unsigned char[]) { 0xDE }},
-        {"Copy Repeating Byte", (unsigned char[]) { 0xFF, 0xFF, 0xFF }, 3, (unsigned char[]) { 0xFF, 0xFF, 0xFF }},
-
-        // Edge cases
-        {"Copy 0 Bytes", str1, 0, ""},
-        {"Copy 1 Byte", str1, 1, "H"},
-        {"Copy Large Buffer", str1, 20, str1},
-        //{"Copy Null Pointer", NULL, 0, NULL},
-        {"Copy Data with Alignment", (int[]) { 0x12345678 }, sizeof(int), (int[]) { 0x12345678 }},
-
-        // Boundary checks
-        {"Copy Exact Memory Size", "BoundaryTest", 11, "BoundaryTes"},
-        {"Copy Beyond Memory Size", "Test", 10, "Test"},
-        {"Copy Data with Padding", "\x01\x02\x00\x00", 4, "\x01\x02\x00\x00"},
-        {"Copy Misaligned Data", (unsigned char[]) { 0x01, 0x02 }, 2, (unsigned char[]) { 0x01, 0x02 }},
-        {"Copy Unaligned Memory", (unsigned char[]) { 0x01 }, 1, (unsigned char[]) { 0x01 }},
-
-        // Other data types
-        {"Copy Double Array", (double[]) { 1.1, 2.2 }, 2 * sizeof(double), (double[]) { 1.1, 2.2 }},
-        {"Copy Long Array", (long[]) { 1000, 2000 }, 2 * sizeof(long), (long[]) { 1000, 2000 }},
-        {"Copy Mixed Data Types", (int[]) { 1, 0xFF, 0x1234 }, 3 * sizeof(int), (int[]) { 1, 0xFF, 0x1234 }},
-        {"Copy Bytes of Float", &float_array1[0], 4, (float[]) { 1.1f }},
-        {"Copy Bytes of Integer", &int_array1[0], 4, (int[]) { 1 }},
-
-        // Filler tests for 50
-        {"Copy ASCII Characters", "ASCII", 5, "ASCII"},
-        {"Copy Trailing Spaces", "space    ", 9, "space    "},
-        {"Copy Hex Values", "\xDE\xAD\xBE\xEF", 4, "\xDE\xAD\xBE\xEF"},
-        {"Copy Aligned Struct", &custom_struct, sizeof(custom_struct), &custom_struct},
-        {"Copy Struct Padding", &custom_struct, 6, (unsigned char[]) { 42, 0, 0, 0, 'S', 't' }}
+        {"Fill full buffer with 0", {0}, 0, 100},
+        {"Fill full buffer with 0xFF", {0}, 0xFF, 100},
+        {"Partial fill with 0xAA", {0}, 0xAA, 10},
+        {"Fill up to size 0", {0}, 0x00, 0},
+        {"Fill 1 byte", {0}, 0x55, 1},
+        {"Fill 50 bytes with 0xAB", {0}, 0xAB, 50},
+        {"Fill edge case (0 bytes)", {0}, 0x01, 0},
+        {"Fill buffer with negative value (converted to unsigned)", {0}, -1, 20},
+        {"Fill unaligned memory (3 bytes)", {1, 2, 3}, 0xEE, 3},
+        {"Fill overlapping regions", "Overlap", 0x44, 4},
+        {"Fill buffer with null terminator", "Hello\0World", 0x99, 12},
+        {"Fill single-byte string", "H", 0x00, 1},
+        {"Fill middle section of a string", "ABCDEFGHIJ", 0xFF, 5},
+        {"Fill with zero size", "Test", 0xAA, 0},
+        {"Fill full with alternate bits", {0}, 0b01010101, 100},
+        {"Fill with edge values (0x00)", {0}, 0x00, 100},
+        {"Fill with edge values (0xFF)", {0}, 0xFF, 100},
+        {"Fill with a single character", {0}, 'A', 1},
+        {"Fill half the buffer", {0}, 0x77, 50},
+        {"Empty buffer with large size", {0}, 0x88, 0},
+        {"Fill after non-zero initialization", {1, 2, 3, 4, 5}, 0x55, 5},
+        {"Fill after special chars", {1, '\n', '\t', 0x7F}, 0xEE, 4},
+        {"Fill buffer ending with null terminator", "Test\0\0\0", 0xAA, 6},
+        {"Fill entire array with a pattern", {0}, 0x5A, 100},
+        {"Fill full buffer with random ASCII", {0}, 0x42, 100},
+        {"Overwrite non-ASCII values", {200, 210, 220}, 0x80, 3},
+        {"Small size with aligned memory", {1, 2, 3}, 0xF0, 1},
+        {"Fill repeating sections", "12345", 0xAA, 3},
+        {"Alternate fill start/end", "Start and end", 0xBB, 15},
+        {"Fill just before null terminator", "BufferTest", 0xFF, 10},
+        {"Change previously filled buffer", {0x99}, 0x33, 50},
+        {"Reset to zero after fill", {0x99}, 0x00, 50},
+        {"String with spaces", "Hello World", 0x20, 11},
+        {"Fill with capital letter", "Testing", 'X', 7},
+        {"Partial overwrite in middle", "PartialOverwrite", 0xCC, 5},
+        {"Fill empty buffer", "", 0x55, 10},
+        {"Multiple fills in succession", {0}, 0x11, 30},
+        {"Fill overlapping ASCII", "ABC\0XYZ", 0xAA, 7},
+        {"Fill buffer starting at offset", "Offset Test", 0xCC, 6},
+        {"Fill special escape sequences", "New\nLine", 0x00, 8},
+        {"Partial overwrite after reset", {0xFF}, 0x77, 5},
+        {"Fill non-printable chars", {0}, 0x1F, 100},
+        {"Fill alternating sections", "123ABC", 0x88, 3},
+        {"Null terminator at beginning", "\0Test", 0x55, 5},
+        {"Fill buffer with mix of data", {1, 2, 3, 4, 5}, 0xEE, 5},
+        {"Test all bytes zero", {0}, 0x00, 100},
+        {"Test all bytes max", {0}, 0xFF, 100},
     };
 
     int total_tests = sizeof(test_cases) / sizeof(TestCase);
@@ -153,9 +129,9 @@ int main() {
     }
 
     // Print summary
-    printf("Pass Score: %d\n", pass);
-    printf("Fail Score: %d\n", fail);
+    printf("Total Tests: %d\n", total_tests);
+    printf("Pass: %d\n", pass);
+    printf("Fail: %d\n", fail);
 
     return 0;
 }
-

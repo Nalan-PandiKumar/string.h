@@ -65,3 +65,4 @@ extern  char*    strstr(const char* haystack, const char* needle);
 extern  char*    strtok(char* str, const char* delims);
 extern  void*    memcpy(void* dest, const void* src, X32_UMAX numBytes);
 extern  X32_MAX  memcmp(const void* ptr1, const void* ptr2, X32_MAX n);
+extern  void*    memset(void* str, int c, X32_UMAX n);
